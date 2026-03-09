@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const TOTAL_SLIDES = 90;
 
@@ -11,7 +11,10 @@ const slides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
 
 const CatalogPage = () => {
   const navigate = useNavigate();
-  const [current, setCurrent] = useState(0);
+  const [searchParams] = useSearchParams();
+  const rawSlide = Number(searchParams.get('slide') || 1);
+  const initialSlide = Number.isFinite(rawSlide) ? Math.max(0, Math.min(TOTAL_SLIDES - 1, rawSlide - 1)) : 0;
+  const [current, setCurrent] = useState(initialSlide);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);

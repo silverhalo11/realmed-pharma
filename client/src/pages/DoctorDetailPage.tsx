@@ -111,10 +111,9 @@ const DoctorDetailPage = () => {
             <div className="space-y-2">
               {prescribed.map((p) => p && (
                 <div key={p.id} className="flex items-center gap-3 rounded-xl bg-card border p-3 shadow-sm" data-testid={`prescribed-${p.id}`}>
-                  {p.image && <img src={p.image} alt={p.name} className="w-10 h-10 object-cover rounded-lg" />}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-card-foreground truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.category}</p>
+                    <p className="text-xs text-muted-foreground truncate">{p.composition || p.category}</p>
                   </div>
                   <button
                     onClick={() => togglePrescribedProduct(doctor.id, p.id)}
@@ -156,10 +155,9 @@ const DoctorDetailPage = () => {
                   }`}
                   data-testid={`toggle-medicine-${p.id}`}
                 >
-                  {p.image && <img src={p.image} alt={p.name} className="w-10 h-10 object-cover rounded-lg" />}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-card-foreground truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">{p.category}</p>
+                    <p className="text-xs text-muted-foreground truncate">{p.composition || p.category}</p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                     isAssigned ? 'bg-primary border-primary' : 'border-muted-foreground'

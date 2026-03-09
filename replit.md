@@ -15,13 +15,21 @@ A mobile-first Progressive Web App (PWA) for pharmaceutical field sales represen
 ## Key Features
 - **Auth**: Local sign up/login with email & password (stored in localStorage)
 - **Dashboard**: Overview with counts for doctors, products, orders, visits, reminders
-- **Doctors**: CRUD management with search
-- **Products**: Category-based product management with slide view
+- **Doctors**: CRUD management with search, degree/DOB, prescribed products tracking
+- **Products**: 90+ pre-seeded RealMed products with category filtering, search by name/composition, slide view with catalog deep-linking
+- **Product Catalog**: Full 90-page visual catalog with swipe navigation, thumbnails, and deep-linking from product cards
 - **Orders**: Create orders linked to doctors/products, share via WhatsApp
 - **Visits**: Schedule and track daily visits with today/tour plan tabs
 - **Reminders**: Track reminders with slide view and completion status
 - **Bottom Navigation**: Native-style tab bar for quick page switching
 - **PWA Install**: Can be installed on Android via "Add to Home Screen"
+
+## Product Data
+- Products are auto-seeded on first load via `_seeded` flag in Zustand store
+- Product model: id, name, category, composition, description, catalogSlide
+- Categories: Eye Drops, Eye Ointment, Eye Gel, Tablets, Capsules
+- Each product links to its catalog slide number for visual reference
+- Catalog slides stored at `client/public/catalog/slide-01.png` through `slide-90.png`
 
 ## File Structure
 ```
@@ -36,7 +44,9 @@ client/src/
 │   ├── SignUpPage.tsx   # Registration with name/email/password
 │   ├── Dashboard.tsx
 │   ├── DoctorsPage.tsx
-│   ├── ProductsPage.tsx
+│   ├── DoctorDetailPage.tsx  # Doctor detail with prescribed products management
+│   ├── ProductsPage.tsx     # Product list with search, filter, slide view
+│   ├── CatalogPage.tsx      # Full-screen 90-page catalog viewer
 │   ├── OrdersPage.tsx
 │   ├── VisitsPage.tsx
 │   ├── RemindersPage.tsx
