@@ -8,7 +8,7 @@ import logoImg from '@assets/realmed_bird_logo.png';
 
 const RealMedLogo = () => (
   <div className="flex flex-col items-center space-y-3">
-    <img src={logoImg} alt="RealMed Pharma" className="w-24 h-24 object-contain mt-2" data-testid="img-logo" />
+    <img src={logoImg} alt="RealMed Pharma" className="w-24 h-24 object-contain" data-testid="img-logo" />
     <div className="text-center">
       <h1 className="text-3xl font-bold" data-testid="text-company-name">
         <span className="text-primary">Real</span><span className="text-amber-500">Med</span>
