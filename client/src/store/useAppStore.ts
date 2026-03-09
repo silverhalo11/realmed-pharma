@@ -18,6 +18,7 @@ export interface Doctor {
   address: string;
   specialty: string;
   notes: string;
+  prescribedProducts: string[];
 }
 
 export interface Product {
@@ -66,6 +67,7 @@ interface AppState {
   addDoctor: (d: Omit<Doctor, 'id'>) => void;
   updateDoctor: (d: Doctor) => void;
   deleteDoctor: (id: string) => void;
+  togglePrescribedProduct: (doctorId: string, productId: string) => void;
   addProduct: (p: Omit<Product, 'id'>) => void;
   deleteProduct: (id: string) => void;
   addCategory: (c: string) => void;
@@ -120,6 +122,18 @@ export const useAppStore = create<AppState>()(
       addDoctor: (d) => set((s) => ({ doctors: [...s.doctors, { ...d, id: uid() }] })),
       updateDoctor: (d) => set((s) => ({ doctors: s.doctors.map((doc) => (doc.id === d.id ? d : doc)) })),
       deleteDoctor: (id) => set((s) => ({ doctors: s.doctors.filter((d) => d.id !== id) })),
+      togglePrescribedProduct: (doctorId, productId) => set((s) => ({
+        doctors: s.doctors.map((d) => {
+          if (d.id !== doctorId) return d;
+          const prods = d.prescribedProducts || [];
+          return {
+            ...d,
+            prescribedProducts: prods.includes(productId)
+              ? prods.filter((p) => p !== productId)
+              : [...prods, productId],
+          };
+        }),
+      })),
       addProduct: (p) => set((s) => ({ products: [...s.products, { ...p, id: uid() }] })),
       deleteProduct: (id) => set((s) => ({ products: s.products.filter((p) => p.id !== id) })),
       addCategory: (c) => set((s) => ({ categories: [...new Set([...s.categories, c])] })),

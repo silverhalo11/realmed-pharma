@@ -14,6 +14,7 @@ import RemindersPage from "./pages/RemindersPage";
 import VisitsPage from "./pages/VisitsPage";
 import OrdersPage from "./pages/OrdersPage";
 import CatalogPage from "./pages/CatalogPage";
+import DoctorDetailPage from "./pages/DoctorDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const AppLayout = () => {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/doctors" element={<ProtectedRoute><DoctorsPage /></ProtectedRoute>} />
+        <Route path="/doctors/:id" element={<ProtectedRoute><DoctorDetailPage /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
         <Route path="/reminders" element={<ProtectedRoute><RemindersPage /></ProtectedRoute>} />
         <Route path="/visits" element={<ProtectedRoute><VisitsPage /></ProtectedRoute>} />

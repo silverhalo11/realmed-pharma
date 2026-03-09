@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore, Doctor } from '@/store/useAppStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -7,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
-const emptyDoctor = { name: '', degree: '', dob: '', clinic: '', phone: '', address: '', specialty: '', notes: '' };
+const emptyDoctor = { name: '', degree: '', dob: '', clinic: '', phone: '', address: '', specialty: '', notes: '', prescribedProducts: [] as string[] };
 
 const DoctorsPage = () => {
+  const navigate = useNavigate();
   const { doctors, addDoctor, updateDoctor, deleteDoctor } = useAppStore();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Doctor | null>(null);
@@ -50,16 +52,19 @@ const DoctorsPage = () => {
         {filtered.map((d) => (
           <div key={d.id} className="rounded-xl bg-card border p-4 shadow-sm">
             <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
+              <button
+                onClick={() => navigate(`/doctors/${d.id}`)}
+                className="flex-1 min-w-0 text-left"
+                data-testid={`doctor-card-${d.id}`}
+              >
                 <p className="font-semibold text-card-foreground truncate">{d.name}{d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}</p>
                 <p className="text-sm text-muted-foreground">{d.specialty}</p>
                 <p className="text-sm text-muted-foreground truncate">{d.clinic}</p>
-                {d.phone && <p className="text-sm text-muted-foreground">{d.phone}</p>}
-                {d.dob && <p className="text-sm text-muted-foreground">DOB: {d.dob}</p>}
-              </div>
-              <div className="flex gap-1 ml-2">
+              </button>
+              <div className="flex items-center gap-1 ml-2">
                 <button onClick={() => openEdit(d)} className="p-2 rounded-lg hover:bg-secondary"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
                 <button onClick={() => deleteDoctor(d.id)} className="p-2 rounded-lg hover:bg-destructive/10"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
           </div>
