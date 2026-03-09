@@ -93,8 +93,9 @@ const CatalogPage = () => {
     <div className="fixed inset-0 z-[100] bg-black flex flex-col select-none" data-testid="catalog-fullscreen">
       <div className="flex items-center justify-between px-3 h-14 bg-gradient-to-b from-black/90 to-black/60 backdrop-blur-sm z-10">
         <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white font-medium text-sm hover:bg-white/25 active:scale-95 transition-all"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); navigate('/products'); }}
+          className="relative z-20 flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white font-medium text-sm hover:bg-white/25 active:scale-95 transition-all"
           data-testid="button-close-catalog"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -142,18 +143,20 @@ const CatalogPage = () => {
         </div>
 
         <button
-          onClick={goPrev}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); goPrev(); }}
           disabled={current === 0}
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20"
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20 z-20"
           data-testid="button-prev-slide"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
 
         <button
-          onClick={goNext}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); goNext(); }}
           disabled={current === TOTAL_SLIDES - 1}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20"
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20 z-20"
           data-testid="button-next-slide"
         >
           <ChevronRight className="w-6 h-6" />
