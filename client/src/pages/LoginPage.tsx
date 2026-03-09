@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import logoImg from '@assets/realmed_bird_logo.png';
 
 const RealMedLogo = () => (
-  <div className="flex flex-col items-center space-y-3">
+  <div className="flex flex-col items-center space-y-1">
     <img src={logoImg} alt="RealMed Pharma" className="w-24 h-24 object-contain" data-testid="img-logo" />
     <div className="text-center">
       <h1 className="text-3xl font-bold" data-testid="text-company-name">
