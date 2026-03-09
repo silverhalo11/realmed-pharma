@@ -149,6 +149,8 @@ const DEFAULT_PRODUCTS: Omit<Product, 'id'>[] = [
   { name: 'Oxkit-D', category: 'Eye Drops', composition: 'Ofloxacin 0.3% + Dexamethasone 0.1% + Ketorolac 0.5%', description: 'Triple combo: antibiotic + steroid + NSAID', catalogSlide: 45 },
 ];
 
+const SEEDED_PRODUCTS: Product[] = DEFAULT_PRODUCTS.map((p, i) => ({ ...p, id: `seed-${i}` }));
+
 interface AppState {
   isLoggedIn: boolean;
   userName: string;
@@ -248,17 +250,16 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'medrep-storage',
-      onRehydrateStorage: () => (state) => {
-        if (state && !state._seeded && state.products.length === 0) {
-          const seededProducts = DEFAULT_PRODUCTS.map((p) => ({ ...p, id: uid() }));
-          useAppStore.setState({
-            products: seededProducts,
-            categories: DEFAULT_CATEGORIES,
-            _seeded: true,
-          });
-        } else if (state && !state._seeded) {
-          useAppStore.setState({ _seeded: true });
+      merge: (persisted: unknown, current: AppState) => {
+        const stored = persisted as Partial<AppState> | undefined;
+        if (!stored) return { ...current, products: SEEDED_PRODUCTS, categories: DEFAULT_CATEGORIES, _seeded: true };
+        const merged = { ...current, ...stored };
+        if (!merged._seeded || merged.products.length === 0) {
+          merged.products = SEEDED_PRODUCTS;
+          merged.categories = DEFAULT_CATEGORIES;
+          merged._seeded = true;
         }
+        return merged as AppState;
       },
     }
   )
