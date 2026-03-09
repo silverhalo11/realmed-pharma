@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const TOTAL_SLIDES = 90;
 
@@ -10,140 +10,173 @@ const slides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
 });
 
 const CatalogPage = () => {
+  const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [zoomed, setZoomed] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
 
-  const goNext = useCallback(() => {
-    setCurrent((c) => Math.min(TOTAL_SLIDES - 1, c + 1));
-    setZoomed(false);
-  }, []);
+  const goTo = useCallback((idx: number) => {
+    if (idx < 0 || idx >= TOTAL_SLIDES || isAnimating) return;
+    setIsAnimating(true);
+    setCurrent(idx);
+    setDragOffset(0);
+    setTimeout(() => setIsAnimating(false), 350);
+  }, [isAnimating]);
 
-  const goPrev = useCallback(() => {
-    setCurrent((c) => Math.max(0, c - 1));
-    setZoomed(false);
-  }, []);
+  const goNext = useCallback(() => goTo(current + 1), [current, goTo]);
+  const goPrev = useCallback(() => goTo(current - 1), [current, goTo]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') goNext();
       if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'Escape') navigate(-1);
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [goNext, goPrev]);
+  }, [goNext, goPrev, navigate]);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (isAnimating) return;
+    setIsDragging(true);
+    isHorizontalSwipe.current = null;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
 
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    if (Math.abs(distance) > 50) {
-      if (distance > 0) goNext();
-      else goPrev();
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        isHorizontalSwipe.current = Math.abs(dx) > Math.abs(dy);
+      }
+      return;
     }
-    setTouchStart(null);
-    setTouchEnd(null);
+
+    if (!isHorizontalSwipe.current) return;
+
+    if ((current === 0 && dx > 0) || (current === TOTAL_SLIDES - 1 && dx < 0)) {
+      setDragOffset(dx * 0.2);
+    } else {
+      setDragOffset(dx);
+    }
   };
+
+  const onPointerUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    const threshold = window.innerWidth * 0.15;
+
+    if (dragOffset < -threshold && current < TOTAL_SLIDES - 1) {
+      goNext();
+    } else if (dragOffset > threshold && current > 0) {
+      goPrev();
+    } else {
+      setDragOffset(0);
+    }
+  };
+
+  const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
+  const translateX = -current * containerWidth + dragOffset;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Product Catalog" />
-
-      <div className="px-2 py-3">
-        <div
-          className="relative bg-card border rounded-xl overflow-hidden shadow-sm"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-          data-testid="catalog-slideshow"
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col select-none" data-testid="catalog-fullscreen">
+      <div className="flex items-center justify-between px-4 h-12 bg-black/80 backdrop-blur-sm z-10">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+          data-testid="button-close-catalog"
         >
-          <div className={`flex items-center justify-center bg-gray-100 dark:bg-gray-900 ${zoomed ? 'min-h-[70vh]' : 'min-h-[50vh]'}`}>
-            <img
-              src={slides[current]}
-              alt={`Slide ${current + 1}`}
-              className={`w-full h-auto transition-transform duration-200 ${zoomed ? 'scale-150' : 'scale-100'}`}
-              draggable={false}
-              data-testid={`catalog-slide-${current + 1}`}
-            />
-          </div>
+          <X className="w-5 h-5" />
+        </button>
+        <span className="text-white/90 text-sm font-medium" data-testid="text-slide-counter">
+          {current + 1} / {TOTAL_SLIDES}
+        </span>
+        <div className="w-9" />
+      </div>
 
-          <button
-            onClick={goPrev}
-            disabled={current === 0}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white disabled:opacity-20 transition-opacity"
-            data-testid="button-prev-slide"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-
-          <button
-            onClick={goNext}
-            disabled={current === TOTAL_SLIDES - 1}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white disabled:opacity-20 transition-opacity"
-            data-testid="button-next-slide"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+      <div
+        ref={containerRef}
+        className="flex-1 relative overflow-hidden touch-pan-y"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <div
+          className="flex h-full"
+          style={{
+            transform: `translateX(${translateX}px)`,
+            transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            width: `${TOTAL_SLIDES * containerWidth}px`,
+          }}
+        >
+          {slides.map((src, idx) => (
+            <div
+              key={idx}
+              className="flex items-center justify-center"
+              style={{ width: containerWidth, height: '100%' }}
+            >
+              {Math.abs(idx - current) <= 2 && (
+                <img
+                  src={src}
+                  alt={`Slide ${idx + 1}`}
+                  className="max-w-full max-h-full object-contain"
+                  draggable={false}
+                  data-testid={`catalog-slide-${idx + 1}`}
+                />
+              )}
+            </div>
+          ))}
         </div>
 
-        <div className="flex items-center justify-between mt-3 px-2">
-          <button
-            onClick={() => setZoomed(!zoomed)}
-            className="p-2 rounded-lg bg-secondary text-secondary-foreground"
-            data-testid="button-zoom"
-          >
-            {zoomed ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
-          </button>
+        <button
+          onClick={goPrev}
+          disabled={current === 0}
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20"
+          data-testid="button-prev-slide"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-foreground" data-testid="text-slide-counter">
-              {current + 1} / {TOTAL_SLIDES}
-            </span>
-          </div>
+        <button
+          onClick={goNext}
+          disabled={current === TOTAL_SLIDES - 1}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20"
+          data-testid="button-next-slide"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      </div>
 
-          <div className="flex gap-1">
-            <input
-              type="number"
-              min={1}
-              max={TOTAL_SLIDES}
-              value={current + 1}
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (val >= 1 && val <= TOTAL_SLIDES) {
-                  setCurrent(val - 1);
-                  setZoomed(false);
-                }
-              }}
-              className="w-14 h-8 rounded-md border border-input bg-background px-2 text-sm text-center"
-              data-testid="input-slide-number"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 px-2">
-          <div className="flex gap-1.5 overflow-x-auto pb-2 snap-x">
-            {slides.map((src, idx) => (
-              <button
-                key={idx}
-                onClick={() => { setCurrent(idx); setZoomed(false); }}
-                className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all snap-start ${
-                  idx === current ? 'border-primary ring-1 ring-primary' : 'border-transparent opacity-60 hover:opacity-100'
-                }`}
-                data-testid={`thumbnail-${idx + 1}`}
-              >
+      <div className="bg-black/80 backdrop-blur-sm py-2 px-2">
+        <div className="flex gap-1 overflow-x-auto pb-1 snap-x scrollbar-hide">
+          {slides.map((src, idx) => (
+            <button
+              key={idx}
+              onClick={() => goTo(idx)}
+              className={`flex-shrink-0 rounded-md overflow-hidden transition-all duration-200 ${
+                idx === current
+                  ? 'w-14 h-10 ring-2 ring-white opacity-100'
+                  : 'w-12 h-8 opacity-40 hover:opacity-70'
+              }`}
+              data-testid={`thumbnail-${idx + 1}`}
+            >
+              {Math.abs(idx - current) <= 10 && (
                 <img src={src} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
-              </button>
-            ))}
-          </div>
+              )}
+            </button>
+          ))}
         </div>
       </div>
     </div>
