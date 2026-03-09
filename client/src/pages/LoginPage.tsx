@@ -6,20 +6,29 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
 const RealMedLogo = () => (
-  <div className="flex flex-col items-center space-y-2">
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 8C28 16 20 20 20 28C20 36 26 42 32 44C38 42 44 36 44 28C44 20 36 16 32 8Z" fill="url(#flame-gradient)" />
-      <path d="M28 18C26 24 22 26 22 30C22 34 26 38 30 38C30 34 28 30 28 26C30 28 32 32 32 36C36 34 38 30 38 26C38 22 34 18 28 18Z" fill="url(#flame-inner)" />
-      <path d="M18 38C14 42 12 48 18 54C20 50 24 48 28 46C24 44 20 42 18 38Z" fill="#1a96c8" opacity="0.8" />
-      <path d="M46 38C50 42 52 48 46 54C44 50 40 48 36 46C40 44 44 42 46 38Z" fill="#1a96c8" opacity="0.8" />
+  <div className="flex flex-col items-center space-y-3">
+    <svg width="80" height="80" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Bird body swooping right */}
+      <path d="M25 55 C30 40, 45 25, 65 20 C55 28, 50 35, 48 45 C46 52, 48 58, 55 62 C45 62, 35 60, 25 55Z" fill="url(#bird-body)" />
+      {/* Upper wing - sweeping up and back */}
+      <path d="M65 20 C58 15, 48 8, 35 10 C42 14, 47 18, 50 24 C55 18, 60 17, 65 20Z" fill="url(#wing-upper)" />
+      {/* Flame tail flowing left */}
+      <path d="M25 55 C20 60, 15 68, 18 78 C22 72, 28 67, 35 65 C30 63, 27 59, 25 55Z" fill="#ea580c" />
+      <path d="M28 58 C24 64, 22 72, 26 80 C28 74, 32 69, 38 66 C34 64, 30 61, 28 58Z" fill="#f59e0b" />
+      {/* Bird head */}
+      <circle cx="63" cy="22" r="3.5" fill="#1a6fa0" />
+      {/* Eye */}
+      <circle cx="64.5" cy="21" r="1" fill="white" />
+      {/* Beak */}
+      <path d="M66 22 L72 20 L67 24Z" fill="#f59e0b" />
       <defs>
-        <linearGradient id="flame-gradient" x1="32" y1="8" x2="32" y2="44" gradientUnits="userSpaceOnUse">
+        <linearGradient id="bird-body" x1="25" y1="35" x2="55" y2="62" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1a96c8" />
+          <stop offset="1" stopColor="#1a6fa0" />
+        </linearGradient>
+        <linearGradient id="wing-upper" x1="35" y1="10" x2="65" y2="20" gradientUnits="userSpaceOnUse">
           <stop stopColor="#f59e0b" />
           <stop offset="1" stopColor="#ea580c" />
-        </linearGradient>
-        <linearGradient id="flame-inner" x1="30" y1="18" x2="30" y2="38" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#fbbf24" />
-          <stop offset="1" stopColor="#f59e0b" />
         </linearGradient>
       </defs>
     </svg>
