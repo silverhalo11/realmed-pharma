@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
-const emptyDoctor = { name: '', clinic: '', phone: '', address: '', specialty: '', notes: '' };
+const emptyDoctor = { name: '', degree: '', dob: '', clinic: '', phone: '', address: '', specialty: '', notes: '' };
 
 const DoctorsPage = () => {
   const { doctors, addDoctor, updateDoctor, deleteDoctor } = useAppStore();
@@ -51,10 +51,11 @@ const DoctorsPage = () => {
           <div key={d.id} className="rounded-xl bg-card border p-4 shadow-sm">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-card-foreground truncate">{d.name}</p>
+                <p className="font-semibold text-card-foreground truncate">{d.name}{d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}</p>
                 <p className="text-sm text-muted-foreground">{d.specialty}</p>
                 <p className="text-sm text-muted-foreground truncate">{d.clinic}</p>
                 {d.phone && <p className="text-sm text-muted-foreground">{d.phone}</p>}
+                {d.dob && <p className="text-sm text-muted-foreground">DOB: {d.dob}</p>}
               </div>
               <div className="flex gap-1 ml-2">
                 <button onClick={() => openEdit(d)} className="p-2 rounded-lg hover:bg-secondary"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
@@ -69,12 +70,16 @@ const DoctorsPage = () => {
         <DialogContent className="max-w-[95vw] rounded-xl">
           <DialogHeader><DialogTitle>{editing ? 'Edit Doctor' : 'Add Doctor'}</DialogTitle></DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {(['name', 'clinic', 'phone', 'address', 'specialty', 'notes'] as const).map((key) => (
+            {(['name', 'degree', 'clinic', 'phone', 'address', 'specialty', 'notes'] as const).map((key) => (
               <div key={key}>
-                <Label className="capitalize text-sm">{key}</Label>
+                <Label className="capitalize text-sm">{key === 'degree' ? 'Degree (e.g. MBBS, MD)' : key}</Label>
                 <Input value={form[key]} onChange={(e) => set(key, e.target.value)} placeholder={`Enter ${key}`} />
               </div>
             ))}
+            <div>
+              <Label className="text-sm">Date of Birth</Label>
+              <Input type="date" value={form.dob} onChange={(e) => set('dob', e.target.value)} data-testid="input-dob" />
+            </div>
           </div>
           <Button onClick={save} className="w-full mt-2">{editing ? 'Update' : 'Add Doctor'}</Button>
         </DialogContent>
