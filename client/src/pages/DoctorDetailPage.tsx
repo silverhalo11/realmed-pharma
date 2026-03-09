@@ -33,10 +33,13 @@ const DoctorDetailPage = () => {
     .map((pid) => products.find((p) => p.id === pid))
     .filter(Boolean);
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = search.trim()
+    ? products.filter((p) =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.composition || '').toLowerCase().includes(search.toLowerCase()) ||
+        p.category.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
 
   const details = [
     { icon: GraduationCap, label: 'Degree', value: doctor.degree },
@@ -129,46 +132,53 @@ const DoctorDetailPage = () => {
         </div>
       </div>
 
-      <Dialog open={prescribeOpen} onOpenChange={setPrescribeOpen}>
+      <Dialog open={prescribeOpen} onOpenChange={(open) => { setPrescribeOpen(open); if (!open) setSearch(''); }}>
         <DialogContent className="max-w-[95vw] rounded-xl">
           <DialogHeader><DialogTitle>Assign Medicines</DialogTitle></DialogHeader>
           <Input
-            placeholder="Search products..."
+            placeholder="Type to search products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             data-testid="input-search-medicine"
+            autoFocus
           />
           <div className="space-y-2 max-h-[50vh] overflow-y-auto mt-2">
-            {filteredProducts.length === 0 && (
-              <p className="text-center text-muted-foreground py-4 text-sm">
-                {products.length === 0 ? 'No products added yet. Add products first.' : 'No matches found'}
-              </p>
+            {products.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4 text-sm">No products added yet. Add products first.</p>
+            ) : !search.trim() ? (
+              <p className="text-center text-muted-foreground py-4 text-sm">Type a product name to search ({products.length} products available)</p>
+            ) : filteredProducts.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4 text-sm">No matches found</p>
+            ) : (
+              filteredProducts.slice(0, 20).map((p) => {
+                const isAssigned = (doctor.prescribedProducts || []).includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => togglePrescribedProduct(doctor.id, p.id)}
+                    className={`w-full flex items-center gap-3 rounded-xl border p-3 transition-colors text-left ${
+                      isAssigned ? 'bg-primary/10 border-primary/30' : 'bg-card hover:bg-secondary/50'
+                    }`}
+                    data-testid={`toggle-medicine-${p.id}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-card-foreground truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{p.composition || p.category}</p>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      isAssigned ? 'bg-primary border-primary' : 'border-muted-foreground'
+                    }`}>
+                      {isAssigned && <span className="text-white text-xs font-bold">✓</span>}
+                    </div>
+                  </button>
+                );
+              })
             )}
-            {filteredProducts.map((p) => {
-              const isAssigned = (doctor.prescribedProducts || []).includes(p.id);
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => togglePrescribedProduct(doctor.id, p.id)}
-                  className={`w-full flex items-center gap-3 rounded-xl border p-3 transition-colors text-left ${
-                    isAssigned ? 'bg-primary/10 border-primary/30' : 'bg-card hover:bg-secondary/50'
-                  }`}
-                  data-testid={`toggle-medicine-${p.id}`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-card-foreground truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{p.composition || p.category}</p>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    isAssigned ? 'bg-primary border-primary' : 'border-muted-foreground'
-                  }`}>
-                    {isAssigned && <span className="text-white text-xs font-bold">✓</span>}
-                  </div>
-                </button>
-              );
-            })}
+            {search.trim() && filteredProducts.length > 20 && (
+              <p className="text-center text-xs text-muted-foreground py-2">Showing 20 of {filteredProducts.length} results. Refine your search.</p>
+            )}
           </div>
-          <Button onClick={() => setPrescribeOpen(false)} className="w-full mt-2">Done</Button>
+          <Button onClick={() => { setPrescribeOpen(false); setSearch(''); }} className="w-full mt-2" data-testid="button-done-medicine">Done</Button>
         </DialogContent>
       </Dialog>
     </div>
