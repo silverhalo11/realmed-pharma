@@ -32,7 +32,9 @@ const OrdersPage = () => {
       const prod = products.find((p) => p.id === item.productId);
       return `• ${prod?.name || 'Unknown'} x ${item.quantity}`;
     });
-    const msg = `*Order for Dr. ${doc?.name || 'Unknown'}*\nDate: ${order.date}\n\n${lines.join('\n')}\n\nPlease confirm availability.`;
+    const storeLine = doc?.medicalStore ? `\n*Medical Store:* ${doc.medicalStore}` : '';
+    const addressLine = doc?.address ? `\n*Delivery Address:* ${doc.address}` : '';
+    const msg = `*Order for Dr. ${doc?.name || 'Unknown'}*\nDate: ${order.date}${storeLine}${addressLine}\n\n${lines.join('\n')}\n\nPlease confirm availability.`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
@@ -48,8 +50,14 @@ const OrdersPage = () => {
             <div key={o.id} className="rounded-xl bg-card border p-4 shadow-sm">
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="font-semibold text-card-foreground">Dr. {doc?.name || 'Unknown'}</p>
+                  <p className="font-semibold text-card-foreground" data-testid={`text-order-doctor-${o.id}`}>Dr. {doc?.name || 'Unknown'}</p>
                   <p className="text-xs text-muted-foreground">{o.date}</p>
+                  {doc?.medicalStore && (
+                    <p className="text-xs text-primary font-medium mt-0.5" data-testid={`text-order-store-${o.id}`}>📦 {doc.medicalStore}</p>
+                  )}
+                  {doc?.address && (
+                    <p className="text-xs text-muted-foreground" data-testid={`text-order-address-${o.id}`}>📍 {doc.address}</p>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => sendWhatsApp(o.id)} className="p-2 rounded-lg hover:bg-secondary">

@@ -19,6 +19,7 @@ export interface Doctor {
   address: string;
   specialty: string;
   notes: string;
+  medicalStore: string;
   prescribedProducts: string[];
 }
 

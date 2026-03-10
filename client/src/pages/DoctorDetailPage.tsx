@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Phone, MapPin, GraduationCap, Calendar, Building2, Stethoscope, StickyNote, Plus, X, Pill, BookOpen, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Phone, MapPin, GraduationCap, Calendar, Building2, Stethoscope, StickyNote, Plus, X, Pill, BookOpen, ChevronLeft, ChevronRight, ArrowLeft, Store } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore, Product } from '@/store/useAppStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -187,6 +187,7 @@ const DoctorDetailPage = () => {
     { icon: Phone, label: 'Phone', value: doctor.phone },
     { icon: MapPin, label: 'Address', value: doctor.address },
     { icon: Stethoscope, label: 'Specialty', value: doctor.specialty },
+    { icon: Store, label: 'Medical Store', value: doctor.medicalStore },
     { icon: StickyNote, label: 'Notes', value: doctor.notes },
   ].filter((d) => d.value);
 
