@@ -21,15 +21,30 @@ const DoctorsPage = () => {
   const filtered = doctors.filter(
     (d) =>
       d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.specialty.toLowerCase().includes(search.toLowerCase())
+      (d.specialty || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const openNew = () => { setEditing(null); setForm(emptyDoctor); setOpen(true); };
-  const openEdit = (d: Doctor) => { setEditing(d); setForm(d); setOpen(true); };
+  const openEdit = (d: Doctor) => {
+    setEditing(d);
+    setForm({
+      name: d.name,
+      degree: d.degree || '',
+      dob: d.dob || '',
+      clinic: d.clinic || '',
+      phone: d.phone || '',
+      address: d.address || '',
+      specialty: d.specialty || '',
+      notes: d.notes || '',
+      medicalStore: d.medicalStore || '',
+      prescribedProducts: d.prescribedProducts || [],
+    });
+    setOpen(true);
+  };
 
   const save = () => {
     if (!form.name.trim()) return;
-    if (editing) updateDoctor({ ...form, id: editing.id });
+    if (editing) updateDoctor({ ...form, id: editing.id, userId: editing.userId });
     else addDoctor(form);
     setOpen(false);
   };

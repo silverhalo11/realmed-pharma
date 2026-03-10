@@ -40,9 +40,9 @@ const OrdersPage = () => {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
     const doc = doctors.find((d) => d.id === order.doctorId);
-    const lines = order.items.map((item) => {
+    const lines = (order.items || []).map((item) => {
       const prod = products.find((p) => p.id === item.productId);
-      const unit = prod ? getUnit(prod.category) : 'pcs';
+      const unit = prod ? getUnit(prod.category || '') : 'pcs';
       return `• ${prod?.name || 'Unknown'} — ${item.quantity} ${unit}`;
     });
     const storeLine = doc?.medicalStore ? `\n*Medical Store:* ${doc.medicalStore}` : '';
@@ -82,9 +82,9 @@ const OrdersPage = () => {
                 </div>
               </div>
               <div className="space-y-1">
-                {o.items.map((item, idx) => {
+                {(o.items || []).map((item, idx) => {
                   const prod = products.find((p) => p.id === item.productId);
-                  const unit = prod ? getUnit(prod.category) : 'pcs';
+                  const unit = prod ? getUnit(prod.category || '') : 'pcs';
                   return (
                     <div key={idx} className="flex justify-between text-sm">
                       <span className="text-card-foreground">{prod?.name || 'Unknown'}</span>
@@ -112,7 +112,7 @@ const OrdersPage = () => {
             <Label>Products</Label>
             {form.items.map((item, idx) => {
               const selectedProduct = products.find((p) => p.id === item.productId);
-              const unit = selectedProduct ? getUnit(selectedProduct.category) : '';
+              const unit = selectedProduct ? getUnit(selectedProduct.category || '') : '';
               return (
                 <div key={idx} className="flex gap-2 items-end">
                   <div className="flex-1">

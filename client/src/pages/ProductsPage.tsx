@@ -29,14 +29,14 @@ const ProductsPage = () => {
   const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, category: p.category, composition: p.composition || '', description: p.description, catalogSlide: p.catalogSlide });
+    setForm({ name: p.name, category: p.category || '', composition: p.composition || '', description: p.description || '', catalogSlide: p.catalogSlide || 0 });
     setOpen(true);
   };
 
   const save = () => {
     if (!form.name.trim()) return;
     if (editing) {
-      updateProduct({ ...form, id: editing.id });
+      updateProduct({ ...form, id: editing.id, userId: editing.userId, isSeeded: editing.isSeeded });
     } else {
       addProduct(form);
     }

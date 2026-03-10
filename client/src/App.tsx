@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +23,17 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
+  const authChecked = useAppStore((s) => s._authChecked);
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   if (!isLoggedIn) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
@@ -29,7 +41,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppLayout = () => {
   const { pathname } = useLocation();
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
+  const checkAuth = useAppStore((s) => s.checkAuth);
   const showNav = isLoggedIn && pathname !== '/login' && pathname !== '/signup';
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   return (
     <>

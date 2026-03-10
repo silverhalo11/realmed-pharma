@@ -27,7 +27,9 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
       setError('Please enter your email');
@@ -37,7 +39,9 @@ const LoginPage = () => {
       setError('Please enter your password');
       return;
     }
-    const result = login(email.trim(), password);
+    setLoading(true);
+    const result = await login(email.trim(), password);
+    setLoading(false);
     if (!result.success) {
       setError(result.error || 'Login failed');
       return;
@@ -88,8 +92,8 @@ const LoginPage = () => {
             </div>
           </div>
           {error && <p className="text-sm text-destructive" data-testid="text-error">{error}</p>}
-          <Button type="submit" className="w-full" data-testid="button-login">
-            Sign In
+          <Button type="submit" className="w-full" disabled={loading} data-testid="button-login">
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 

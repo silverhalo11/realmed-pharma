@@ -170,7 +170,7 @@ const DoctorDetailPage = () => {
     ? products.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.composition || '').toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase())
+        (p.category || '').toLowerCase().includes(search.toLowerCase())
       )
     : [];
 

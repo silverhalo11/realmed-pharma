@@ -15,7 +15,7 @@ const VisitsPage = () => {
 
   const today = new Date().toISOString().split('T')[0];
   const todayVisits = visits.filter((v) => v.date === today);
-  const futureVisits = visits.filter((v) => v.date > today);
+  const futureVisits = visits.filter((v) => (v.date || '') > today);
 
   const save = () => {
     if (!form.doctorId || !form.date) return;

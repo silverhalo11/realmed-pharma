@@ -18,7 +18,9 @@ const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setError('Please enter your name');
@@ -40,7 +42,9 @@ const SignUpPage = () => {
       setError('Passwords do not match');
       return;
     }
-    const result = register(name.trim(), email.trim(), phone.trim(), password);
+    setLoading(true);
+    const result = await register(name.trim(), email.trim(), phone.trim(), password);
+    setLoading(false);
     if (!result.success) {
       setError(result.error || 'Registration failed');
       return;
@@ -131,8 +135,8 @@ const SignUpPage = () => {
             />
           </div>
           {error && <p className="text-sm text-destructive" data-testid="text-error">{error}</p>}
-          <Button type="submit" className="w-full" data-testid="button-signup">
-            Create Account
+          <Button type="submit" className="w-full" disabled={loading} data-testid="button-signup">
+            {loading ? 'Creating account...' : 'Create Account'}
           </Button>
         </form>
 

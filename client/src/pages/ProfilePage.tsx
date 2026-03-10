@@ -115,7 +115,7 @@ const ProfilePage = () => {
         <Button
           variant="destructive"
           className="w-full mt-6"
-          onClick={() => { logout(); navigate('/login'); }}
+          onClick={async () => { await logout(); navigate('/login'); }}
           data-testid="button-logout"
         >
           <LogOut className="w-4 h-4 mr-2" />
