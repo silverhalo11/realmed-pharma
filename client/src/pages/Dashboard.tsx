@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Stethoscope, Package, ShoppingCart, MapPin, Bell, BookOpen, ChevronLeft, ChevronRight, UserCircle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import logoPath from '@assets/realmed_bird_logo.png';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -22,9 +23,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="px-4 pt-6 pb-3 flex items-start justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground" data-testid="text-welcome">Welcome back, {userName}</p>
-          <h1 className="text-2xl font-bold text-foreground">Realmed Pharma</h1>
+        <div className="flex items-center gap-3">
+          <img src={logoPath} alt="RealMed" className="w-12 h-12 rounded-xl object-contain" data-testid="img-logo" />
+          <div>
+            <p className="text-sm text-muted-foreground" data-testid="text-welcome">Welcome back, {userName}</p>
+            <h1 className="text-xl font-bold text-foreground">RealMed Pharma</h1>
+            <p className="text-[10px] text-muted-foreground tracking-wide">Serving & Preserving Eye Health</p>
+          </div>
         </div>
         <button
           onClick={() => navigate('/profile')}
