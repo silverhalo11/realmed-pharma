@@ -12,6 +12,7 @@ declare module "express-session" {
 
 function requireAuth(req: Request, res: Response, next: Function) {
   if (!req.session.userId) {
+    console.log("requireAuth FAILED:", req.method, req.path, "sessionID:", req.sessionID, "cookie:", req.headers.cookie ? "present" : "missing");
     return res.status(401).json({ message: "Not authenticated" });
   }
   next();
@@ -38,10 +39,26 @@ export async function registerRoutes(
       }
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await storage.createUser({ username, email, phone: phone || "", password: hashedPassword });
-      await storage.seedProducts(user.id, DEFAULT_PRODUCTS);
+      try {
+        await storage.seedProducts(user.id, DEFAULT_PRODUCTS);
+      } catch (seedErr: any) {
+        console.error("seedProducts error (non-fatal):", seedErr.message);
+      }
       req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            reject(err);
+          } else {
+            console.log("Session saved successfully for userId:", user.id);
+            resolve();
+          }
+        });
+      });
       res.json({ id: user.id, username: user.username, email: user.email, phone: user.phone });
     } catch (err: any) {
+      console.error("Register error:", err.message);
       res.status(500).json({ message: err.message });
     }
   });
@@ -61,9 +78,25 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Invalid email or password" });
       }
       req.session.userId = user.id;
-      await storage.seedProducts(user.id, DEFAULT_PRODUCTS);
+      try {
+        await storage.seedProducts(user.id, DEFAULT_PRODUCTS);
+      } catch (seedErr: any) {
+        console.error("seedProducts error (non-fatal):", seedErr.message);
+      }
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("Session save error:", err);
+            reject(err);
+          } else {
+            console.log("Session saved successfully for userId:", user.id);
+            resolve();
+          }
+        });
+      });
       res.json({ id: user.id, username: user.username, email: user.email, phone: user.phone });
     } catch (err: any) {
+      console.error("Login error:", err.message);
       res.status(500).json({ message: err.message });
     }
   });
