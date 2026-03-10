@@ -1,21 +1,24 @@
 import { useState } from 'react';
-import { Plus, Trash2, BookOpen, Search, FlaskConical } from 'lucide-react';
+import { Plus, Trash2, BookOpen, Search, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
-import { useAppStore } from '@/store/useAppStore';
+import { useAppStore, Product } from '@/store/useAppStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
+const emptyForm = { name: '', category: '', composition: '', description: '', catalogSlide: 0 };
+
 const ProductsPage = () => {
   const navigate = useNavigate();
-  const { products, categories, addProduct, deleteProduct, addCategory } = useAppStore();
+  const { products, categories, addProduct, updateProduct, deleteProduct, addCategory } = useAppStore();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Product | null>(null);
   const [catOpen, setCatOpen] = useState(false);
   const [newCat, setNewCat] = useState('');
-  const [form, setForm] = useState({ name: '', category: '', composition: '', description: '', catalogSlide: 0 });
+  const [form, setForm] = useState(emptyForm);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
 
@@ -23,11 +26,23 @@ const ProductsPage = () => {
     .filter((p) => filter === 'All' || p.category === filter)
     .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.composition || '').toLowerCase().includes(search.toLowerCase()));
 
+  const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
+  const openEdit = (p: Product) => {
+    setEditing(p);
+    setForm({ name: p.name, category: p.category, composition: p.composition || '', description: p.description, catalogSlide: p.catalogSlide });
+    setOpen(true);
+  };
+
   const save = () => {
     if (!form.name.trim()) return;
-    addProduct(form);
+    if (editing) {
+      updateProduct({ ...form, id: editing.id });
+    } else {
+      addProduct(form);
+    }
     setOpen(false);
-    setForm({ name: '', category: '', composition: '', description: '', catalogSlide: 0 });
+    setEditing(null);
+    setForm(emptyForm);
   };
 
   const saveCat = () => {
@@ -44,7 +59,7 @@ const ProductsPage = () => {
         action={
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => setCatOpen(true)} data-testid="button-add-category">+ Category</Button>
-            <Button size="sm" onClick={() => setOpen(true)} data-testid="button-add-product"><Plus className="w-4 h-4 mr-1" />Add</Button>
+            <Button size="sm" onClick={openNew} data-testid="button-add-product"><Plus className="w-4 h-4 mr-1" />Add</Button>
           </div>
         }
       />
@@ -98,6 +113,13 @@ const ProductsPage = () => {
                 </button>
               )}
               <button
+                onClick={() => openEdit(p)}
+                className="p-2 rounded-lg hover:bg-secondary"
+                data-testid={`button-edit-product-${p.id}`}
+              >
+                <Pencil className="w-4 h-4 text-muted-foreground" />
+              </button>
+              <button
                 onClick={() => deleteProduct(p.id)}
                 className="p-2 rounded-lg hover:bg-destructive/10"
                 data-testid={`button-delete-product-${p.id}`}
@@ -113,10 +135,10 @@ const ProductsPage = () => {
         </p>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setForm(emptyForm); } }}>
         <DialogContent className="max-w-[95vw] rounded-xl">
-          <DialogHeader><DialogTitle>Add Product</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
             <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-product-name" /></div>
             <div>
               <Label>Category</Label>
@@ -132,8 +154,21 @@ const ProductsPage = () => {
             </div>
             <div><Label>Composition</Label><Input value={form.composition} onChange={(e) => setForm({ ...form, composition: e.target.value })} placeholder="Active ingredients" data-testid="input-product-composition" /></div>
             <div><Label>Description</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="input-product-description" /></div>
+            <div>
+              <Label>Catalogue Slide Number</Label>
+              <Input
+                type="number"
+                min={0}
+                max={90}
+                value={form.catalogSlide || ''}
+                onChange={(e) => setForm({ ...form, catalogSlide: parseInt(e.target.value) || 0 })}
+                placeholder="Enter slide number (1-90), 0 = none"
+                data-testid="input-product-catalog-slide"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Slide number from the product catalogue (1-90). Set to 0 for no catalogue image.</p>
+            </div>
           </div>
-          <Button onClick={save} className="w-full mt-2" data-testid="button-save-product">Add Product</Button>
+          <Button onClick={save} className="w-full mt-2" data-testid="button-save-product">{editing ? 'Update Product' : 'Add Product'}</Button>
         </DialogContent>
       </Dialog>
 

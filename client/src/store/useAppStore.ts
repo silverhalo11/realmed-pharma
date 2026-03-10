@@ -175,6 +175,7 @@ interface AppState {
   deleteDoctor: (id: string) => void;
   togglePrescribedProduct: (doctorId: string, productId: string) => void;
   addProduct: (p: Omit<Product, 'id'>) => void;
+  updateProduct: (p: Product) => void;
   deleteProduct: (id: string) => void;
   addCategory: (c: string) => void;
   addReminder: (r: Omit<Reminder, 'id'>) => void;
@@ -254,6 +255,7 @@ export const useAppStore = create<AppState>()(
         }),
       })),
       addProduct: (p) => set((s) => ({ products: [...s.products, { ...p, id: uid() }] })),
+      updateProduct: (p) => set((s) => ({ products: s.products.map((x) => x.id === p.id ? p : x) })),
       deleteProduct: (id) => set((s) => ({ products: s.products.filter((p) => p.id !== id) })),
       addCategory: (c) => set((s) => ({ categories: [...new Set([...s.categories, c])] })),
       addReminder: (r) => set((s) => ({ reminders: [...s.reminders, { ...r, id: uid() }] })),
