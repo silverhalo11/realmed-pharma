@@ -92,24 +92,26 @@ const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { 
           ))}
         </div>
 
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); goTo(current - 1); }}
-          disabled={current === 0}
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20 z-20"
-          data-testid="button-prev-prescribed-slide"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); goTo(current + 1); }}
-          disabled={current === slides.length - 1}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white disabled:opacity-0 transition-all hover:bg-white/20 z-20"
-          data-testid="button-next-prescribed-slide"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
+        {current > 0 && (
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); goTo(current - 1); }}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
+            data-testid="button-prev-prescribed-slide"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+        {current < slides.length - 1 && (
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); goTo(current + 1); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
+            data-testid="button-next-prescribed-slide"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
       </div>
 
       <div className="bg-black/80 backdrop-blur-sm py-2 px-3">
