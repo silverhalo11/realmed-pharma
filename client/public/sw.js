@@ -1,4 +1,4 @@
-const CACHE_NAME = 'realmed-v4';
+const CACHE_NAME = 'realmed-v5';
 
 const PRECACHE_URLS = [
   '/',
@@ -36,6 +36,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   if (url.pathname.startsWith('/assets/') || url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname.endsWith('.png') || url.pathname.endsWith('.woff2')) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) =>
@@ -59,20 +63,4 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const fetchPromise = fetch(request)
-        .then((response) => {
-          if (response && response.status === 200 && response.type === 'basic') {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-
-      return cached || fetchPromise;
-    })
-  );
 });
