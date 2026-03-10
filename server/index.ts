@@ -72,7 +72,7 @@ export function log(message: string, source = "express") {
       session({
         store: new PgSession({
           pool: pool,
-          createTableIfMissing: true,
+          createTableIfMissing: false,
         }),
         secret: process.env.SESSION_SECRET,
         resave: false,
