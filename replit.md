@@ -18,7 +18,7 @@ A mobile-first Progressive Web App (PWA) for pharmaceutical field sales represen
 - Login: `POST /api/auth/login` with `{email, password}`
 - Register: `POST /api/auth/register` with `{username, email, phone, password}`
 - Session check: `GET /api/auth/me`
-- Passwords hashed with bcrypt
+- Passwords hashed with bcryptjs (pure JS, no native bindings)
 
 ## Database Schema (shared/schema.ts)
 - **users**: id (UUID), username, email, phone, password
@@ -71,7 +71,7 @@ client/src/
 └── hooks/                 # Custom hooks
 client/public/
 ├── manifest.json          # PWA manifest
-├── sw.js                  # Service worker (realmed-v4 cache)
+├── sw.js                  # Service worker (realmed-v5 cache, API calls bypass cache)
 ├── catalog/               # 90 product catalog slides
 └── icon-*.png, favicon.png
 ```
@@ -85,5 +85,15 @@ client/public/
 
 ## Dependencies
 - react-router-dom, zustand, sonner, lucide-react, shadcn/ui, recharts, date-fns
-- express-session, connect-pg-simple, bcrypt (server auth)
+- express-session, connect-pg-simple, bcryptjs (server auth)
 - drizzle-orm, drizzle-kit, pg (database)
+
+## Railway Deployment
+- **URL**: https://respectful-dedication-production-15cb.up.railway.app/
+- **Build**: `npm run build` (esbuild bundles server, Vite builds client)
+- **Start**: `npm start` → `NODE_ENV=production node dist/index.cjs`
+- **Build script** copies `table.sql` to `dist/` for connect-pg-simple session table creation
+- **Runtime migrations** in `server/migrate.ts` — creates all tables (including session) on startup
+- **SSL**: `ssl: { rejectUnauthorized: false }` for production DB connections
+- **Required env vars**: DATABASE_URL, SESSION_SECRET, PORT (8080), NODE_ENV (production)
+- `app.set("trust proxy", 1)` required for secure cookies behind Railway's reverse proxy

@@ -128,29 +128,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/debug/status", async (req, res) => {
-    try {
-      const hasSession = !!req.session?.userId;
-      const userId = req.session?.userId || null;
-      let dbOk = false;
-      let userCount = 0;
-      let productCount = 0;
-      try {
-        const { pool } = await import("./db");
-        const r1 = await pool.query("SELECT COUNT(*) as cnt FROM users");
-        userCount = parseInt(r1.rows[0].cnt);
-        const r2 = await pool.query("SELECT COUNT(*) as cnt FROM products");
-        productCount = parseInt(r2.rows[0].cnt);
-        dbOk = true;
-      } catch (dbErr: any) {
-        return res.json({ dbOk: false, dbError: dbErr.message, hasSession, userId });
-      }
-      res.json({ dbOk, userCount, productCount, hasSession, userId });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   app.get("/api/doctors", requireAuth, async (req, res) => {
     try {
       const data = await storage.getDoctors(req.session.userId!);
