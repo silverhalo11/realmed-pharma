@@ -25,6 +25,28 @@ const CatalogPage = () => {
   const startY = useRef(0);
   const isHorizontalSwipe = useRef<boolean | null>(null);
 
+  useEffect(() => {
+    const lockLandscape = async () => {
+      try {
+        if (screen.orientation && (screen.orientation as any).lock) {
+          await (screen.orientation as any).lock('landscape');
+        }
+      } catch {
+        // Orientation lock not supported or not allowed — silently ignore
+      }
+    };
+    lockLandscape();
+    return () => {
+      try {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+        }
+      } catch {
+        // ignore
+      }
+    };
+  }, []);
+
   const goTo = useCallback((idx: number) => {
     if (idx < 0 || idx >= TOTAL_SLIDES || isAnimating) return;
     setIsAnimating(true);
