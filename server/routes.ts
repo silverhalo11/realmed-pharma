@@ -265,5 +265,35 @@ export async function registerRoutes(
     } catch (err: any) { console.error("DELETE /api/reminders error:", err.message); res.status(500).json({ message: err.message }); }
   });
 
+  // Calls routes
+  app.get("/api/calls", requireAuth, async (req, res) => {
+    try {
+      const data = await storage.getCalls(req.session.userId!);
+      res.json(data);
+    } catch (err: any) { console.error("GET /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
+  app.post("/api/calls", requireAuth, async (req, res) => {
+    try {
+      const call = await storage.addCall(req.session.userId!, req.body);
+      res.json(call);
+    } catch (err: any) { console.error("POST /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
+  app.put("/api/calls/:id", requireAuth, async (req, res) => {
+    try {
+      const call = await storage.updateCall(req.session.userId!, req.params.id, req.body);
+      if (!call) return res.status(404).json({ message: "Call not found" });
+      res.json(call);
+    } catch (err: any) { console.error("PUT /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
+  app.delete("/api/calls/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteCall(req.session.userId!, req.params.id);
+      res.json({ ok: true });
+    } catch (err: any) { console.error("DELETE /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
   return httpServer;
 }

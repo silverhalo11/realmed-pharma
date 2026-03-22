@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
-const emptyDoctor = { name: '', degree: '', dob: '', clinic: '', phone: '', address: '', specialty: '', notes: '', medicalStore: '', prescribedProducts: [] as string[] };
+const emptyDoctor = { name: '', degree: '', dob: '', clinic: '', phone: '', address: '', city: '', specialty: '', notes: '', medicalStore: '', prescribedProducts: [] as string[] };
 
 const DoctorsPage = () => {
   const navigate = useNavigate();
@@ -34,6 +34,7 @@ const DoctorsPage = () => {
       clinic: d.clinic || '',
       phone: d.phone || '',
       address: d.address || '',
+      city: d.city || '',
       specialty: d.specialty || '',
       notes: d.notes || '',
       medicalStore: d.medicalStore || '',
@@ -90,10 +91,11 @@ const DoctorsPage = () => {
         <DialogContent className="max-w-[95vw] rounded-xl">
           <DialogHeader><DialogTitle>{editing ? 'Edit Doctor' : 'Add Doctor'}</DialogTitle></DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {(['name', 'degree', 'clinic', 'phone', 'address', 'specialty', 'medicalStore', 'notes'] as const).map((key) => {
+            {(['name', 'degree', 'clinic', 'phone', 'address', 'city', 'specialty', 'medicalStore', 'notes'] as const).map((key) => {
               const labels: Record<string, string> = {
                 degree: 'Degree (e.g. MBBS, MD)',
                 medicalStore: 'Medical Store Name',
+                city: 'City',
               };
               return (
                 <div key={key}>

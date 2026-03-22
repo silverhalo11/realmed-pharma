@@ -1,22 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Stethoscope, Package, ShoppingCart, MapPin, Bell, BookOpen, ChevronLeft, ChevronRight, UserCircle } from 'lucide-react';
+import { Stethoscope, Package, ShoppingCart, MapPin, Bell, BookOpen, ChevronLeft, ChevronRight, UserCircle, Phone } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import logoPath from '@assets/realmed_bird_logo_white.png';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { doctors, products, orders, visits, reminders, userName } = useAppStore();
+  const { doctors, products, orders, visits, reminders, calls, userName } = useAppStore();
 
   const today = new Date().toISOString().split('T')[0];
   const todayVisits = visits.filter((v) => v.date === today);
+  const todayCalls = calls.filter((c) => c.date === today);
   const activeReminders = reminders.filter((r) => !r.done);
 
   const cards = [
     { label: 'Doctors', count: doctors.length, icon: Stethoscope, path: '/doctors', color: 'bg-primary' },
     { label: 'Products', count: products.length, icon: Package, path: '/products', color: 'bg-accent' },
-    { label: 'Orders', count: orders.length, icon: ShoppingCart, path: '/orders', color: 'bg-warning' },
-    { label: 'Visits', count: todayVisits.length, icon: MapPin, path: '/visits', color: 'bg-info' },
+    { label: 'Calls', count: todayCalls.length, icon: Phone, path: '/calls', color: 'bg-info' },
+    { label: 'Visits', count: todayVisits.length, icon: MapPin, path: '/visits', color: 'bg-warning' },
     { label: 'Reminders', count: activeReminders.length, icon: Bell, path: '/reminders', color: 'bg-destructive' },
   ];
 

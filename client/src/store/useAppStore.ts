@@ -11,6 +11,7 @@ export interface Doctor {
   clinic: string | null;
   phone: string | null;
   address: string | null;
+  city: string | null;
   specialty: string | null;
   notes: string | null;
   medicalStore: string | null;
@@ -53,6 +54,16 @@ export interface Order {
   date: string | null;
 }
 
+export interface Call {
+  id: string;
+  userId: string;
+  doctorId: string;
+  date: string | null;
+  status: string | null;
+  products: { productId: string; status: 'pending' | 'liked' | 'removed' }[] | null;
+  notes: string | null;
+}
+
 const DEFAULT_CATEGORIES = ['Eye Drops', 'Eye Ointment', 'Eye Gel', 'Tablets', 'Capsules'];
 
 interface AppState {
@@ -66,6 +77,7 @@ interface AppState {
   reminders: Reminder[];
   visits: Visit[];
   orders: Order[];
+  calls: Call[];
   _loading: boolean;
   _authChecked: boolean;
 
@@ -97,6 +109,10 @@ interface AppState {
 
   addOrder: (o: Omit<Order, 'id' | 'userId'>) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
+
+  addCall: (c: Omit<Call, 'id' | 'userId'>) => Promise<Call | null>;
+  updateCall: (c: Call) => Promise<void>;
+  deleteCall: (id: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -112,6 +128,7 @@ export const useAppStore = create<AppState>()(
       reminders: [],
       visits: [],
       orders: [],
+      calls: [],
       _loading: false,
       _authChecked: false,
 
@@ -149,7 +166,7 @@ export const useAppStore = create<AppState>()(
 
       logout: async () => {
         try { await api.post('/api/auth/logout'); } catch {}
-        set({ isLoggedIn: false, userName: '', userEmail: '', userPhone: '', doctors: [], products: [], orders: [], visits: [], reminders: [] });
+        set({ isLoggedIn: false, userName: '', userEmail: '', userPhone: '', doctors: [], products: [], orders: [], visits: [], reminders: [], calls: [] });
       },
 
       updateProfile: async (name, phone) => {
@@ -168,15 +185,17 @@ export const useAppStore = create<AppState>()(
             api.get<Order[]>('/api/orders'),
             api.get<Visit[]>('/api/visits'),
             api.get<Reminder[]>('/api/reminders'),
+            api.get<Call[]>('/api/calls'),
           ]);
           const doctorsList = results[0].status === 'fulfilled' ? results[0].value : [];
           const productsList = results[1].status === 'fulfilled' ? results[1].value : [];
           const ordersList = results[2].status === 'fulfilled' ? results[2].value : [];
           const visitsList = results[3].status === 'fulfilled' ? results[3].value : [];
           const remindersList = results[4].status === 'fulfilled' ? results[4].value : [];
+          const callsList = results[5].status === 'fulfilled' ? results[5].value : [];
           const productCategories = [...new Set(productsList.map((p) => p.category || '').filter(Boolean))];
           const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...productCategories])];
-          set({ doctors: doctorsList, products: productsList, orders: ordersList, visits: visitsList, reminders: remindersList, categories: allCategories, _loading: false });
+          set({ doctors: doctorsList, products: productsList, orders: ordersList, visits: visitsList, reminders: remindersList, calls: callsList, categories: allCategories, _loading: false });
         } catch {
           set({ _loading: false });
         }
@@ -279,6 +298,28 @@ export const useAppStore = create<AppState>()(
         try {
           await api.delete(`/api/orders/${id}`);
           set((s) => ({ orders: s.orders.filter((o) => o.id !== id) }));
+        } catch {}
+      },
+
+      addCall: async (c) => {
+        try {
+          const call = await api.post<Call>('/api/calls', c);
+          set((s) => ({ calls: [...s.calls, call] }));
+          return call;
+        } catch {
+          return null;
+        }
+      },
+      updateCall: async (c) => {
+        try {
+          const call = await api.put<Call>(`/api/calls/${c.id}`, c);
+          set((s) => ({ calls: s.calls.map((x) => x.id === c.id ? call : x) }));
+        } catch {}
+      },
+      deleteCall: async (id) => {
+        try {
+          await api.delete(`/api/calls/${id}`);
+          set((s) => ({ calls: s.calls.filter((c) => c.id !== id) }));
         } catch {}
       },
     }),

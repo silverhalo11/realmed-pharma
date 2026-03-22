@@ -17,6 +17,9 @@ import OrdersPage from "./pages/OrdersPage";
 import CatalogPage from "./pages/CatalogPage";
 import DoctorDetailPage from "./pages/DoctorDetailPage";
 import ProfilePage from "./pages/ProfilePage";
+import CallsPage from "./pages/CallsPage";
+import NewCallPage from "./pages/NewCallPage";
+import CallDetailPage from "./pages/CallDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +65,9 @@ const AppLayout = () => {
         <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
         <Route path="/catalog" element={<ProtectedRoute><CatalogPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/calls" element={<ProtectedRoute><CallsPage /></ProtectedRoute>} />
+        <Route path="/calls/new/:doctorId" element={<ProtectedRoute><NewCallPage /></ProtectedRoute>} />
+        <Route path="/calls/:callId" element={<ProtectedRoute><CallDetailPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {showNav && <BottomNav />}

@@ -1,11 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Stethoscope, Package, ShoppingCart, MapPin } from 'lucide-react';
+import { LayoutDashboard, Stethoscope, Package, Phone, MapPin } from 'lucide-react';
 
 const tabs = [
   { label: 'Home', icon: LayoutDashboard, path: '/' },
   { label: 'Doctors', icon: Stethoscope, path: '/doctors' },
   { label: 'Products', icon: Package, path: '/products' },
-  { label: 'Orders', icon: ShoppingCart, path: '/orders' },
+  { label: 'Calls', icon: Phone, path: '/calls' },
   { label: 'Visits', icon: MapPin, path: '/visits' },
 ];
 
