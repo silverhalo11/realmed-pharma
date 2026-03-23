@@ -28,6 +28,7 @@ export async function runMigrations() {
         "prescribed_products" text[] DEFAULT '{}'::text[]
       );
     `);
+    await client.query(`ALTER TABLE "doctors" ADD COLUMN IF NOT EXISTS "city" text DEFAULT '';`);
     await client.query(`
       CREATE TABLE IF NOT EXISTS "products" (
         "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -66,6 +67,17 @@ export async function runMigrations() {
         "text" text DEFAULT '',
         "date" text DEFAULT '',
         "done" boolean DEFAULT false
+      );
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "calls" (
+        "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        "user_id" varchar NOT NULL REFERENCES "users"("id"),
+        "doctor_id" varchar NOT NULL,
+        "date" text DEFAULT '',
+        "status" text DEFAULT 'pending',
+        "products" json DEFAULT '[]',
+        "notes" text DEFAULT ''
       );
     `);
     await client.query(`
