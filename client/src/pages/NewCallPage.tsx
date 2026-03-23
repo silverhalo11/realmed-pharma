@@ -4,28 +4,15 @@ import {
   Phone,
   Package,
   Check,
-  X,
-  Plus,
   Search,
-  ArrowLeft,
-  Play,
-  ThumbsUp,
-  ThumbsDown,
-  Minus,
-  ChevronRight,
+  Save,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { useAppStore, type Product } from '@/store/useAppStore';
+import { useAppStore } from '@/store/useAppStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 type SelectedProduct = {
   productId: string;
@@ -40,7 +27,7 @@ const NewCallPage = () => {
   const doctor = doctors.find((d) => d.id === doctorId);
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
   const [search, setSearch] = useState('');
-  const [showProductSelector, setShowProductSelector] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const filteredProducts = useMemo(() => {
     return products.filter(
@@ -53,9 +40,7 @@ const NewCallPage = () => {
   const toggleProduct = (productId: string) => {
     setSelectedProducts((prev) => {
       const exists = prev.find((p) => p.productId === productId);
-      if (exists) {
-        return prev.filter((p) => p.productId !== productId);
-      }
+      if (exists) return prev.filter((p) => p.productId !== productId);
       return [...prev, { productId, status: 'pending' }];
     });
   };
@@ -63,20 +48,24 @@ const NewCallPage = () => {
   const isSelected = (productId: string) =>
     selectedProducts.some((p) => p.productId === productId);
 
-  const startCall = async () => {
+  const saveCall = async () => {
     if (!doctorId || selectedProducts.length === 0) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const call = await addCall({
-      doctorId,
-      date: today,
-      status: 'in-progress',
-      products: selectedProducts,
-      notes: '',
-    });
-
-    if (call) {
-      navigate(`/calls/${call.id}`, { replace: true });
+    setSaving(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await addCall({
+        doctorId,
+        date: today,
+        status: 'completed',
+        products: selectedProducts,
+        notes: '',
+      });
+      toast.success('Call saved successfully');
+      navigate('/calls');
+    } catch {
+      toast.error('Failed to save call');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -89,11 +78,8 @@ const NewCallPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <PageHeader
-        title="New Call"
-        back={() => navigate('/calls')}
-      />
+    <div className="min-h-screen bg-background pb-28">
+      <PageHeader title="New Call" back={() => navigate('/calls')} />
 
       {/* Doctor Info */}
       <div className="px-4 pb-4">
@@ -106,10 +92,7 @@ const NewCallPage = () => {
               <p className="font-semibold text-card-foreground">
                 {doctor.name}
                 {doctor.degree && (
-                  <span className="text-muted-foreground font-normal text-sm">
-                    {' '}
-                    ({doctor.degree})
-                  </span>
+                  <span className="text-muted-foreground font-normal text-sm"> ({doctor.degree})</span>
                 )}
               </p>
               <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
@@ -126,7 +109,24 @@ const NewCallPage = () => {
           Select Products to Showcase ({selectedProducts.length} selected)
         </h2>
 
-        {/* Search */}
+        {selectedProducts.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {selectedProducts.map((sp) => {
+              const p = products.find((x) => x.id === sp.productId);
+              return (
+                <span
+                  key={sp.productId}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium cursor-pointer"
+                  onClick={() => toggleProduct(sp.productId)}
+                >
+                  {p?.name}
+                  <span className="ml-1 text-primary/70">×</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -137,34 +137,6 @@ const NewCallPage = () => {
           />
         </div>
 
-        {/* Selected Products */}
-        {selectedProducts.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs text-muted-foreground mb-2">Selected for this call:</p>
-            <div className="flex flex-wrap gap-2">
-              {selectedProducts.map((sp) => {
-                const product = products.find((p) => p.id === sp.productId);
-                return (
-                  <Badge
-                    key={sp.productId}
-                    variant="secondary"
-                    className="flex items-center gap-1 pr-1"
-                  >
-                    {product?.name}
-                    <button
-                      onClick={() => toggleProduct(sp.productId)}
-                      className="ml-1 p-0.5 hover:bg-muted rounded"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Product List */}
         <div className="space-y-2 max-h-[50vh] overflow-y-auto">
           {filteredProducts.length === 0 && (
             <p className="text-center text-muted-foreground py-6">No products found.</p>
@@ -186,26 +158,24 @@ const NewCallPage = () => {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-card-foreground truncate">{product.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {product.category} {product.composition && `- ${product.composition}`}
+                  {product.category}{product.composition ? ` - ${product.composition}` : ''}
                 </p>
               </div>
-              {isSelected(product.id) && (
-                <Check className="w-5 h-5 text-primary" />
-              )}
+              {isSelected(product.id) && <Check className="w-5 h-5 text-primary flex-shrink-0" />}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Start Call Button */}
-      <div className="fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-background via-background to-transparent pt-4">
+      {/* Save Call Button */}
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-4 bg-gradient-to-t from-background via-background to-transparent">
         <Button
           className="w-full h-12 text-base gap-2"
-          onClick={startCall}
-          disabled={selectedProducts.length === 0}
+          onClick={saveCall}
+          disabled={selectedProducts.length === 0 || saving}
         >
-          <Play className="w-5 h-5" />
-          Start Call with {selectedProducts.length} Products
+          <Save className="w-5 h-5" />
+          {saving ? 'Saving...' : `Save Call with ${selectedProducts.length} Product${selectedProducts.length !== 1 ? 's' : ''}`}
         </Button>
       </div>
     </div>
