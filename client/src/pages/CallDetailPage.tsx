@@ -5,14 +5,16 @@ import {
   Package,
   ThumbsUp,
   ThumbsDown,
-  Check,
-  X,
-  Clock,
   CheckCircle,
   MapPin,
   Building,
   MessageSquare,
   Trash2,
+  BookOpen,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Save,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store/useAppStore';
@@ -30,6 +32,58 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+
+const getSlideUrl = (slide: number | null | undefined) => {
+  if (!slide) return null;
+  return `/catalog/slide-${String(slide).padStart(2, '0')}.png`;
+};
+
+const CatalogModal = ({
+  slides,
+  initialIndex,
+  onClose,
+}: {
+  slides: { name: string; url: string }[];
+  initialIndex: number;
+  onClose: () => void;
+}) => {
+  const [current, setCurrent] = useState(initialIndex);
+  return (
+    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+      <div className="flex items-center justify-between px-4 h-14 bg-black/80">
+        <button onClick={onClose} className="flex items-center gap-1 text-white text-sm">
+          <X className="w-5 h-5" /> Close
+        </button>
+        <span className="text-white text-sm font-semibold">{slides[current]?.name}</span>
+        <span className="text-white/60 text-sm">{current + 1}/{slides.length}</span>
+      </div>
+      <div className="flex-1 flex items-center justify-center relative">
+        <img
+          src={slides[current]?.url}
+          alt={slides[current]?.name}
+          className="max-w-full max-h-full object-contain"
+        />
+        {current > 0 && (
+          <button
+            onClick={() => setCurrent((c) => c - 1)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+        {current < slides.length - 1 && (
+          <button
+            onClick={() => setCurrent((c) => c + 1)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const CallDetailPage = () => {
   const { callId } = useParams<{ callId: string }>();
@@ -39,6 +93,8 @@ const CallDetailPage = () => {
   const call = calls.find((c) => c.id === callId);
   const doctor = doctors.find((d) => d.id === call?.doctorId);
   const [notes, setNotes] = useState(call?.notes || '');
+  const [saving, setSaving] = useState(false);
+  const [catalogModal, setCatalogModal] = useState<{ slides: { name: string; url: string }[]; index: number } | null>(null);
 
   const callProducts = useMemo(() => {
     if (!call?.products) return [];
@@ -49,27 +105,53 @@ const CallDetailPage = () => {
   }, [call, products]);
 
   const likedCount = callProducts.filter((p) => p.status === 'liked').length;
-  const removedCount = callProducts.filter((p) => p.status === 'removed').length;
-  const pendingCount = callProducts.filter((p) => p.status === 'pending').length;
+  const productCount = callProducts.length;
+
+  const slidesWithUrls = useMemo(() => {
+    return callProducts
+      .map((cp) => {
+        const url = getSlideUrl(cp.product?.catalogSlide);
+        if (!url) return null;
+        return { name: cp.product?.name || '', url };
+      })
+      .filter(Boolean) as { name: string; url: string }[];
+  }, [callProducts]);
+
+  const openCatalog = (productId: string) => {
+    const idx = slidesWithUrls.findIndex((s) => {
+      const cp = callProducts.find((c) => c.productId === productId);
+      return s.name === cp?.product?.name;
+    });
+    if (slidesWithUrls.length > 0) {
+      setCatalogModal({ slides: slidesWithUrls, index: Math.max(0, idx) });
+    }
+  };
 
   const updateProductStatus = async (productId: string, status: 'pending' | 'liked' | 'removed') => {
     if (!call) return;
     const newProducts = call.products?.map((p) =>
       p.productId === productId ? { ...p, status } : p
     );
-    await updateCall({
-      ...call,
-      products: newProducts || [],
-    });
+    await updateCall({ ...call, products: newProducts || [] });
   };
 
-  const endCall = async () => {
+  const saveNotes = async () => {
     if (!call) return;
-    await updateCall({
-      ...call,
-      status: 'completed',
-      notes,
-    });
+    setSaving(true);
+    try {
+      await updateCall({ ...call, notes });
+      toast.success('Notes saved');
+    } catch {
+      toast.error('Failed to save notes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const markCompleted = async () => {
+    if (!call) return;
+    await updateCall({ ...call, status: 'completed', notes });
+    toast.success('Call marked as completed');
     navigate('/calls');
   };
 
@@ -87,13 +169,20 @@ const CallDetailPage = () => {
     );
   }
 
-  const isActive = call.status === 'in-progress';
   const isCompleted = call.status === 'completed';
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      {catalogModal && (
+        <CatalogModal
+          slides={catalogModal.slides}
+          initialIndex={catalogModal.index}
+          onClose={() => setCatalogModal(null)}
+        />
+      )}
+
       <PageHeader
-        title={isActive ? 'Active Call' : isCompleted ? 'Call Summary' : 'Call Details'}
+        title={isCompleted ? 'Call Summary' : 'Call Details'}
         back={() => navigate('/calls')}
         action={
           <AlertDialog>
@@ -106,7 +195,7 @@ const CallDetailPage = () => {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Call</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete this call record? This action cannot be undone.
+                  Are you sure you want to delete this call record? This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -120,166 +209,135 @@ const CallDetailPage = () => {
         }
       />
 
-      {/* Status Banner */}
-      {isActive && (
-        <div className="mx-4 mb-4 p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-            <Phone className="w-4 h-4 text-primary-foreground animate-pulse" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Call in Progress</p>
-            <p className="text-xs text-muted-foreground">Review products with the doctor</p>
-          </div>
-        </div>
-      )}
-
-      {isCompleted && (
-        <div className="mx-4 mb-4 p-3 rounded-xl bg-accent/10 border border-accent/20 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
-            <CheckCircle className="w-4 h-4 text-accent-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Call Completed</p>
-            <p className="text-xs text-muted-foreground">{call.date}</p>
-          </div>
-        </div>
-      )}
-
       {/* Doctor Info */}
       <div className="px-4 pb-4">
         <div className="rounded-xl bg-card border p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-              <span className="text-lg font-semibold text-secondary-foreground">
-                {doctor.name.charAt(0)}
-              </span>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+              <Phone className="w-6 h-6 text-primary-foreground" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="font-semibold text-card-foreground">
                 {doctor.name}
-                {doctor.degree && (
-                  <span className="text-muted-foreground font-normal text-sm">
-                    {' '}
-                    ({doctor.degree})
-                  </span>
-                )}
+                {doctor.degree && <span className="text-muted-foreground font-normal text-sm"> ({doctor.degree})</span>}
               </p>
-              <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
+              {doctor.specialty && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <MapPin className="w-3 h-3" /> {doctor.specialty}
+                </p>
+              )}
               {doctor.clinic && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                  <Building className="w-3 h-3" />
-                  {doctor.clinic}
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Building className="w-3 h-3" /> {doctor.clinic}
                 </p>
               )}
-              {doctor.city && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {doctor.city}
-                </p>
-              )}
+            </div>
+            <div className="text-right">
+              <Badge variant={isCompleted ? 'default' : 'secondary'}>
+                {isCompleted ? 'Completed' : 'Pending'}
+              </Badge>
+              <p className="text-xs text-muted-foreground mt-1">{call.date}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Summary Stats */}
       <div className="px-4 pb-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-card border p-3 text-center">
-            <p className="text-xl font-bold text-accent">{likedCount}</p>
-            <p className="text-xs text-muted-foreground">Liked</p>
+            <p className="text-2xl font-bold text-card-foreground">{productCount}</p>
+            <p className="text-xs text-muted-foreground">Products Shown</p>
           </div>
           <div className="rounded-xl bg-card border p-3 text-center">
-            <p className="text-xl font-bold text-destructive">{removedCount}</p>
-            <p className="text-xs text-muted-foreground">Removed</p>
-          </div>
-          <div className="rounded-xl bg-card border p-3 text-center">
-            <p className="text-xl font-bold text-warning">{pendingCount}</p>
-            <p className="text-xs text-muted-foreground">Pending</p>
+            <p className="text-2xl font-bold text-green-500">{likedCount}</p>
+            <p className="text-xs text-muted-foreground">Products Liked</p>
           </div>
         </div>
       </div>
 
-      {/* Products */}
+      {/* Products with Catalog */}
       <div className="px-4 pb-4">
         <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
           <Package className="w-4 h-4" />
-          Products ({callProducts.length})
+          Products Showcased ({productCount})
         </h2>
-
         <div className="space-y-3">
-          {callProducts.map((cp) => (
-            <div
-              key={cp.productId}
-              className={`rounded-xl border p-4 transition-colors ${
-                cp.status === 'liked'
-                  ? 'bg-accent/10 border-accent/30'
-                  : cp.status === 'removed'
-                  ? 'bg-destructive/10 border-destructive/30'
-                  : 'bg-card'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-card-foreground truncate">
-                    {cp.product?.name || 'Unknown Product'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {cp.product?.category}{' '}
-                    {cp.product?.composition && `- ${cp.product.composition}`}
-                  </p>
-                  <Badge
-                    variant={
-                      cp.status === 'liked'
-                        ? 'default'
-                        : cp.status === 'removed'
-                        ? 'destructive'
-                        : 'secondary'
-                    }
-                    className="mt-2"
-                  >
-                    {cp.status === 'liked' && <ThumbsUp className="w-3 h-3 mr-1" />}
-                    {cp.status === 'removed' && <ThumbsDown className="w-3 h-3 mr-1" />}
-                    {cp.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-                    {cp.status.charAt(0).toUpperCase() + cp.status.slice(1)}
-                  </Badge>
+          {callProducts.map((cp) => {
+            const slideUrl = getSlideUrl(cp.product?.catalogSlide);
+            return (
+              <div key={cp.productId} className="rounded-xl bg-card border overflow-hidden shadow-sm">
+                <div className="flex items-center gap-3 p-3">
+                  {/* Catalog Thumbnail */}
+                  {slideUrl ? (
+                    <button
+                      onClick={() => openCatalog(cp.productId)}
+                      className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border bg-muted hover:opacity-80 transition-opacity"
+                      title="View catalog"
+                    >
+                      <img
+                        src={slideUrl}
+                        alt={cp.product?.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ) : (
+                    <div className="w-14 h-14 rounded-lg flex-shrink-0 bg-muted flex items-center justify-center border">
+                      <Package className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-card-foreground truncate">{cp.product?.name || 'Unknown'}</p>
+                    <p className="text-xs text-muted-foreground">{cp.product?.category}</p>
+                    {cp.product?.composition && (
+                      <p className="text-xs text-muted-foreground truncate">{cp.product.composition}</p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge
+                      variant={cp.status === 'liked' ? 'default' : cp.status === 'removed' ? 'destructive' : 'secondary'}
+                      className="text-xs"
+                    >
+                      {cp.status === 'liked' ? '👍 Liked' : cp.status === 'removed' ? '👎 Removed' : 'Pending'}
+                    </Badge>
+                    {slideUrl && (
+                      <button
+                        onClick={() => openCatalog(cp.productId)}
+                        className="text-xs text-primary flex items-center gap-1 mt-1"
+                      >
+                        <BookOpen className="w-3 h-3" /> Catalog
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {isActive && (
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      size="sm"
-                      variant={cp.status === 'liked' ? 'default' : 'outline'}
-                      className={`w-10 h-10 p-0 ${
-                        cp.status === 'liked' ? 'bg-accent hover:bg-accent/90' : ''
+                {/* Reaction buttons */}
+                {!isCompleted && (
+                  <div className="flex border-t">
+                    <button
+                      onClick={() => updateProductStatus(cp.productId, cp.status === 'liked' ? 'pending' : 'liked')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
+                        cp.status === 'liked' ? 'bg-green-500/10 text-green-600' : 'text-muted-foreground hover:bg-muted'
                       }`}
-                      onClick={() =>
-                        updateProductStatus(
-                          cp.productId,
-                          cp.status === 'liked' ? 'pending' : 'liked'
-                        )
-                      }
                     >
-                      <ThumbsUp className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={cp.status === 'removed' ? 'destructive' : 'outline'}
-                      className="w-10 h-10 p-0"
-                      onClick={() =>
-                        updateProductStatus(
-                          cp.productId,
-                          cp.status === 'removed' ? 'pending' : 'removed'
-                        )
-                      }
+                      <ThumbsUp className="w-4 h-4" /> Like
+                    </button>
+                    <div className="w-px bg-border" />
+                    <button
+                      onClick={() => updateProductStatus(cp.productId, cp.status === 'removed' ? 'pending' : 'removed')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
+                        cp.status === 'removed' ? 'bg-red-500/10 text-red-600' : 'text-muted-foreground hover:bg-muted'
+                      }`}
                     >
-                      <ThumbsDown className="w-4 h-4" />
-                    </Button>
+                      <ThumbsDown className="w-4 h-4" /> Remove
+                    </button>
                   </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -296,14 +354,19 @@ const CallDetailPage = () => {
           className="min-h-[100px]"
           disabled={isCompleted}
         />
+        {!isCompleted && (
+          <Button variant="outline" size="sm" className="mt-2 gap-1" onClick={saveNotes} disabled={saving}>
+            <Save className="w-3 h-3" /> {saving ? 'Saving...' : 'Save Notes'}
+          </Button>
+        )}
       </div>
 
-      {/* Action Button */}
-      {isActive && (
-        <div className="fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-background via-background to-transparent pt-4">
-          <Button className="w-full h-12 text-base gap-2" onClick={endCall}>
+      {/* Mark Completed Button */}
+      {!isCompleted && (
+        <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-4 bg-gradient-to-t from-background via-background to-transparent">
+          <Button className="w-full h-12 text-base gap-2" onClick={markCompleted}>
             <CheckCircle className="w-5 h-5" />
-            End Call & Save
+            Mark as Completed
           </Button>
         </div>
       )}
