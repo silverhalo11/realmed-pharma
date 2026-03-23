@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Search, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronRight, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore, Doctor } from '@/store/useAppStore';
@@ -73,13 +73,27 @@ const DoctorsPage = () => {
                 className="flex-1 min-w-0 text-left"
                 data-testid={`doctor-card-${d.id}`}
               >
-                <p className="font-semibold text-card-foreground truncate">{d.name}{d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}</p>
+                <p className="font-semibold text-card-foreground truncate">
+                  {d.name}
+                  {d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}
+                </p>
                 <p className="text-sm text-muted-foreground">{d.specialty}</p>
                 <p className="text-sm text-muted-foreground truncate">{d.clinic}</p>
               </button>
               <div className="flex items-center gap-1 ml-2">
-                <button onClick={() => openEdit(d)} className="p-2 rounded-lg hover:bg-secondary"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
-                <button onClick={() => deleteDoctor(d.id)} className="p-2 rounded-lg hover:bg-destructive/10"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                <button
+                  onClick={() => navigate(`/calls/new/${d.id}`)}
+                  className="p-2 rounded-lg hover:bg-primary/10"
+                  title="Start Call"
+                >
+                  <Phone className="w-4 h-4 text-primary" />
+                </button>
+                <button onClick={() => openEdit(d)} className="p-2 rounded-lg hover:bg-secondary">
+                  <Pencil className="w-4 h-4 text-muted-foreground" />
+                </button>
+                <button onClick={() => deleteDoctor(d.id)} className="p-2 rounded-lg hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </button>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
@@ -100,7 +114,12 @@ const DoctorsPage = () => {
               return (
                 <div key={key}>
                   <Label className="capitalize text-sm">{labels[key] || key}</Label>
-                  <Input value={form[key]} onChange={(e) => set(key, e.target.value)} placeholder={`Enter ${key === 'medicalStore' ? 'medical store name' : key}`} data-testid={`input-${key}`} />
+                  <Input
+                    value={form[key]}
+                    onChange={(e) => set(key, e.target.value)}
+                    placeholder={`Enter ${key === 'medicalStore' ? 'medical store name' : key}`}
+                    data-testid={`input-${key}`}
+                  />
                 </div>
               );
             })}
