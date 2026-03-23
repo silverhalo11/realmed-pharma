@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Search, ChevronRight, Plus, Clock, CheckCircle, X, MapPin } from 'lucide-react';
+import { Phone, Search, ChevronRight, Plus, Package, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store/useAppStore';
 import { Input } from '@/components/ui/input';
@@ -12,52 +12,31 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const CallsPage = () => {
   const navigate = useNavigate();
-  const { doctors, calls } = useAppStore();
-  const [cityFilter, setCityFilter] = useState<string>('all');
+  const { doctors, calls, products, deleteCall } = useAppStore();
   const [showDoctorPicker, setShowDoctorPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Get unique cities
-  const cities = useMemo(() => {
-    const s = new Set<string>();
-    doctors.forEach((d) => { if (d.city) s.add(d.city); });
-    return Array.from(s).sort();
-  }, [doctors]);
-
-  // Doctors that already have calls — shown with phone button
-  const doctorsWithCalls = useMemo(() => {
-    const ids = new Set(calls.map((c) => c.doctorId));
-    return doctors.filter((d) => {
-      if (!ids.has(d.id)) return false;
-      const matchesCity = cityFilter === 'all' || d.city === cityFilter;
-      return matchesCity;
-    });
-  }, [doctors, calls, cityFilter]);
-
-  // Get call stats for each doctor
-  const getDoctorCallStats = (doctorId: string) => {
-    const doctorCalls = calls.filter((c) => c.doctorId === doctorId);
-    const completed = doctorCalls.filter((c) => c.status === 'completed').length;
-    return { total: doctorCalls.length, completed };
-  };
-
-  // Today's calls
   const today = new Date().toISOString().split('T')[0];
   const todayCalls = calls.filter((c) => c.date === today);
 
-  // Recent calls sorted newest first
-  const recentCalls = [...calls].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const sortedCalls = useMemo(
+    () => [...calls].sort((a, b) => (b.date || '').localeCompare(a.date || '')),
+    [calls]
+  );
 
-  // Doctor picker filtered list
   const pickerDoctors = useMemo(() => {
     const q = pickerSearch.toLowerCase();
     return doctors.filter(
@@ -67,6 +46,12 @@ const CallsPage = () => {
         (d.clinic || '').toLowerCase().includes(q)
     );
   }, [doctors, pickerSearch]);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    await deleteCall(deleteId);
+    setDeleteId(null);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -113,13 +98,33 @@ const CallsPage = () => {
                     {d.name}
                     {d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}
                   </p>
-                  <p className="text-xs text-muted-foreground">{d.specialty}{d.city ? ` · ${d.city}` : ''}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {d.specialty}{d.city ? ` · ${d.city}` : ''}
+                  </p>
                 </div>
               </button>
             ))}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Call</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this call record? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Stats */}
       <div className="px-4 pb-4">
@@ -129,126 +134,114 @@ const CallsPage = () => {
             <p className="text-xs text-muted-foreground">Today</p>
           </div>
           <div className="rounded-xl bg-card border p-3 text-center">
-            <p className="text-2xl font-bold text-green-500">{calls.filter((c) => c.status === 'completed').length}</p>
+            <p className="text-2xl font-bold text-green-500">
+              {calls.filter((c) => c.status === 'completed').length}
+            </p>
             <p className="text-xs text-muted-foreground">Completed</p>
           </div>
           <div className="rounded-xl bg-card border p-3 text-center">
-            <p className="text-2xl font-bold text-amber-500">{calls.filter((c) => c.status === 'pending').length}</p>
+            <p className="text-2xl font-bold text-amber-500">
+              {calls.filter((c) => c.status === 'pending').length}
+            </p>
             <p className="text-xs text-muted-foreground">Pending</p>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      {(cities.length > 0 || doctorsWithCalls.length > 0) && (
-        <div className="px-4 pb-4">
-          <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="w-40">
-              <MapPin className="w-4 h-4 mr-1" />
-              <SelectValue placeholder="All Cities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              {cities.map((city) => (
-                <SelectItem key={city} value={city}>{city}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Doctors with existing calls */}
-      {doctorsWithCalls.length > 0 && (
-        <div className="px-4 pb-4">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Call Again
-          </h2>
-          <div className="space-y-2">
-            {doctorsWithCalls.map((d) => {
-              const stats = getDoctorCallStats(d.id);
-              return (
-                <div key={d.id} className="rounded-xl bg-card border p-4 shadow-sm flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-card-foreground truncate">
-                      {d.name}
-                      {d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{d.specialty}</p>
-                    {d.city && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />{d.city}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                    <span className="text-xs text-muted-foreground">{stats.completed}/{stats.total} calls</span>
-                    <button
-                      onClick={() => navigate(`/calls/new/${d.id}`)}
-                      className="w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:bg-primary/90 transition-colors"
-                    >
-                      <Phone className="w-5 h-5 text-primary-foreground" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Calls */}
-      {recentCalls.length > 0 && (
-        <div className="px-4 pb-6">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Recent Calls
-          </h2>
-          <div className="space-y-2">
-            {recentCalls.map((call) => {
-              const doctor = doctors.find((d) => d.id === call.doctorId);
-              const productCount = call.products?.length || 0;
-              const likedCount = call.products?.filter((p) => p.status === 'liked').length || 0;
-              return (
-                <button
-                  key={call.id}
-                  onClick={() => navigate(`/calls/${call.id}`)}
-                  className="w-full rounded-lg bg-card border p-3 text-left flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        call.status === 'completed'
-                          ? 'bg-green-500/20 text-green-600'
-                          : 'bg-amber-500/20 text-amber-600'
-                      }`}
-                    >
-                      {call.status === 'completed' ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        <Clock className="w-4 h-4" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-card-foreground">
-                        {doctor?.name || 'Unknown'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {call.date} · {likedCount}/{productCount} products liked
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {calls.length === 0 && (
+      {/* Saved Calls List */}
+      {sortedCalls.length === 0 ? (
         <div className="px-4 py-16 text-center">
           <Phone className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground font-medium">No calls yet</p>
           <p className="text-sm text-muted-foreground mt-1">Tap "+ New Call" to get started</p>
+        </div>
+      ) : (
+        <div className="px-4 pb-6 space-y-3">
+          {sortedCalls.map((call) => {
+            const doctor = doctors.find((d) => d.id === call.doctorId);
+            const callProducts = (call.products || []).map((cp) => ({
+              ...cp,
+              product: products.find((p) => p.id === cp.productId),
+            }));
+            const likedCount = callProducts.filter((p) => p.status === 'liked').length;
+
+            return (
+              <div key={call.id} className="rounded-xl bg-card border shadow-sm overflow-hidden">
+                {/* Doctor info + action buttons */}
+                <div className="flex items-center gap-3 p-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-card-foreground truncate">
+                      {doctor?.name || 'Unknown'}
+                      {doctor?.degree && (
+                        <span className="text-muted-foreground font-normal text-sm"> ({doctor.degree})</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {doctor?.specialty}{doctor?.city ? ` · ${doctor.city}` : ''}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{call.date}</p>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Blue phone — start new call with same doctor */}
+                    <button
+                      onClick={() => navigate(`/calls/new/${call.doctorId}`)}
+                      className="w-9 h-9 rounded-full bg-primary flex items-center justify-center hover:bg-primary/90 transition-colors"
+                      title="Start new call"
+                    >
+                      <Phone className="w-4 h-4 text-primary-foreground" />
+                    </button>
+                    {/* Delete */}
+                    <button
+                      onClick={() => setDeleteId(call.id)}
+                      className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-destructive/10 transition-colors"
+                      title="Delete call"
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </button>
+                    {/* View details */}
+                    <button
+                      onClick={() => navigate(`/calls/${call.id}`)}
+                      className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-muted transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Products showcased in this call */}
+                {callProducts.length > 0 && (
+                  <div className="border-t px-3 py-2 bg-muted/30">
+                    <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <Package className="w-3 h-3" />
+                      {callProducts.length} product{callProducts.length !== 1 ? 's' : ''} showcased
+                      {likedCount > 0 && (
+                        <span className="text-green-600 ml-1">· {likedCount} liked</span>
+                      )}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {callProducts.map((cp) => (
+                        <span
+                          key={cp.productId}
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            cp.status === 'liked'
+                              ? 'bg-green-500/15 text-green-700'
+                              : cp.status === 'removed'
+                              ? 'bg-red-500/15 text-red-700'
+                              : 'bg-muted text-muted-foreground border'
+                          }`}
+                        >
+                          {cp.product?.name || 'Unknown'}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
