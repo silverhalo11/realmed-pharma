@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Search, ChevronRight, Phone } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore, Doctor } from '@/store/useAppStore';
@@ -81,13 +81,6 @@ const DoctorsPage = () => {
                 <p className="text-sm text-muted-foreground truncate">{d.clinic}</p>
               </button>
               <div className="flex items-center gap-1 ml-2">
-                <button
-                  onClick={() => navigate(`/calls/new/${d.id}`)}
-                  className="p-2 rounded-lg hover:bg-primary/10"
-                  title="Start Call"
-                >
-                  <Phone className="w-4 h-4 text-primary" />
-                </button>
                 <button onClick={() => openEdit(d)} className="p-2 rounded-lg hover:bg-secondary">
                   <Pencil className="w-4 h-4 text-muted-foreground" />
                 </button>
