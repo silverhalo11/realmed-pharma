@@ -78,7 +78,7 @@ const NewCallPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-36">
       <PageHeader title="New Call" back={() => navigate('/calls')} />
 
       {/* Doctor Info */}
@@ -168,7 +168,7 @@ const NewCallPage = () => {
       </div>
 
       {/* Save Call Button */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-6 pt-4 bg-gradient-to-t from-background via-background to-transparent">
+      <div className="fixed bottom-14 left-0 right-0 px-4 pb-4 pt-4 bg-gradient-to-t from-background via-background to-transparent">
         <Button
           className="w-full h-12 text-base gap-2"
           onClick={saveCall}
