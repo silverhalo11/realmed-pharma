@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ZoomableImage from '@/components/ZoomableImage';
 
@@ -10,6 +10,22 @@ const slides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
   return `/catalog/slide-${num}.png`;
 });
 
+const requestFS = () => {
+  const el = document.documentElement as any;
+  (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen)?.call(el);
+};
+
+const exitFS = () => {
+  const d = document as any;
+  (d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen || d.msExitFullscreen)?.call(d);
+};
+
+const isFullscreen = () => !!(
+  document.fullscreenElement ||
+  (document as any).webkitFullscreenElement ||
+  (document as any).mozFullScreenElement
+);
+
 const CatalogPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -18,7 +34,25 @@ const CatalogPage = () => {
   const returnTo = searchParams.get('from') || '/products';
   const [current, setCurrent] = useState(initialSlide);
   const [exiting, setExiting] = useState(false);
+  const [fsActive, setFsActive] = useState(false);
   const thumbsRef = useRef<HTMLDivElement>(null);
+
+  // Request fullscreen on open
+  useEffect(() => {
+    requestFS();
+    const onFsChange = () => setFsActive(isFullscreen());
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      exitFS();
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
+  }, []);
+
+  const toggleFS = () => {
+    isFullscreen() ? exitFS() : requestFS();
+  };
 
   const goTo = useCallback((idx: number) => {
     if (idx < 0 || idx >= TOTAL_SLIDES) return;
@@ -32,40 +66,92 @@ const CatalogPage = () => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') goNext();
       if (e.key === 'ArrowLeft') goPrev();
-      if (e.key === 'Escape') navigate(returnTo);
+      if (e.key === 'Escape') { exitFS(); setTimeout(() => navigate(returnTo), 50); }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [goNext, goPrev, navigate, returnTo]);
 
+  // Keep active thumbnail in view
   useEffect(() => {
     if (!thumbsRef.current) return;
     const btn = thumbsRef.current.children[current] as HTMLElement;
     if (btn) btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
   }, [current]);
 
+  const handleClose = () => {
+    if (exiting) return;
+    setExiting(true);
+    exitFS();
+    setTimeout(() => navigate(returnTo), 50);
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col select-none" data-testid="catalog-fullscreen">
-      <div className="flex items-center justify-between px-3 h-14 bg-gradient-to-b from-black/90 to-black/60 backdrop-blur-sm z-10 flex-shrink-0">
+    <div
+      data-testid="catalog-fullscreen"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        background: '#000',
+        display: 'flex',
+        flexDirection: 'column',
+        userSelect: 'none',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        height: 56,
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.5))',
+        flexShrink: 0,
+        zIndex: 10,
+      }}>
         <button
-          onClick={() => {
-            if (exiting) return;
-            setExiting(true);
-            setTimeout(() => navigate(returnTo), 50);
-          }}
-          className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white font-medium text-sm hover:bg-white/25 active:scale-95 transition-all"
+          onClick={handleClose}
           data-testid="button-close-catalog"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            height: 44, padding: '0 16px',
+            borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+            color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
+            cursor: 'pointer',
+          }}
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back</span>
+          <ArrowLeft size={20} />
+          Back
         </button>
-        <span className="text-white text-sm font-semibold bg-white/15 px-3 py-1 rounded-full" data-testid="text-slide-counter">
+
+        <span
+          data-testid="text-slide-counter"
+          style={{
+            color: '#fff', fontSize: 15, fontWeight: 600,
+            background: 'rgba(255,255,255,0.15)',
+            padding: '4px 14px', borderRadius: 999,
+          }}
+        >
           {current + 1} / {TOTAL_SLIDES}
         </span>
-        <div className="w-[72px]" />
+
+        <button
+          onClick={toggleFS}
+          title={fsActive ? 'Exit fullscreen' : 'Enter fullscreen'}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            height: 44, padding: '0 16px',
+            borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+            color: '#fff', fontSize: 14, border: 'none', cursor: 'pointer',
+          }}
+        >
+          {fsActive ? <Minimize size={20} /> : <Maximize size={20} />}
+        </button>
       </div>
 
-      <div className="flex-1 relative overflow-hidden">
+      {/* Slide area */}
+      <div style={{ flex: 1, position: 'relative' }}>
         <ZoomableImage
           key={current}
           src={slides[current]}
@@ -73,41 +159,79 @@ const CatalogPage = () => {
           onSwipeLeft={goNext}
           onSwipeRight={goPrev}
         />
+
+        {/* Prev button */}
         {current > 0 && (
           <button
             onClick={goPrev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
             data-testid="button-prev-slide"
+            style={{
+              position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
+              width: 52, height: 52, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.45)', border: 'none',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', zIndex: 20,
+            }}
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft size={28} />
           </button>
         )}
+
+        {/* Next button */}
         {current < TOTAL_SLIDES - 1 && (
           <button
             onClick={goNext}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
             data-testid="button-next-slide"
+            style={{
+              position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+              width: 52, height: 52, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.45)', border: 'none',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', zIndex: 20,
+            }}
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight size={28} />
           </button>
         )}
       </div>
 
-      <div className="bg-black/80 backdrop-blur-sm py-2 px-2 flex-shrink-0">
-        <div ref={thumbsRef} className="flex gap-1 overflow-x-auto pb-1 snap-x scrollbar-hide">
+      {/* Thumbnail strip */}
+      <div style={{
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(8px)',
+        padding: '8px 8px 10px',
+        flexShrink: 0,
+      }}>
+        <div
+          ref={thumbsRef}
+          style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}
+        >
           {slides.map((src, idx) => (
             <button
               key={idx}
               onClick={() => goTo(idx)}
-              className={`flex-shrink-0 rounded-md overflow-hidden transition-all duration-200 ${
-                idx === current
-                  ? 'w-14 h-10 ring-2 ring-white opacity-100'
-                  : 'w-12 h-8 opacity-40 hover:opacity-70'
-              }`}
               data-testid={`thumbnail-${idx + 1}`}
+              style={{
+                flexShrink: 0,
+                width: idx === current ? 64 : 52,
+                height: idx === current ? 44 : 36,
+                borderRadius: 6,
+                overflow: 'hidden',
+                border: 'none',
+                cursor: 'pointer',
+                outline: idx === current ? '2.5px solid #fff' : 'none',
+                opacity: idx === current ? 1 : 0.4,
+                transition: 'all 0.2s ease',
+                padding: 0,
+              }}
             >
               {Math.abs(idx - current) <= 10 && (
-                <img src={src} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                <img
+                  src={src}
+                  alt={`Thumb ${idx + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  loading="lazy"
+                />
               )}
             </button>
           ))}
