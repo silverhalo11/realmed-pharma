@@ -8,52 +8,85 @@ interface Props {
   hint?: boolean;
 }
 
+/**
+ * ZoomableImage — renders at natural image resolution (never upscales),
+ * supports pinch-to-zoom, double-tap, pan, swipe navigation, and
+ * auto-resets on orientation change.
+ */
 const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
+  // scale=1 means "fit to container" (image at natural rendered size, no transform)
   const stateRef = useRef({ scale: 1, tx: 0, ty: 0 });
+  // Base rendered size of the image before any CSS transform (measured after load/resize)
+  const baseSizeRef = useRef({ w: 0, h: 0 });
+
   const lastTap = useRef(0);
   const pinchDist = useRef<number | null>(null);
   const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   const swipeStart = useRef({ x: 0, y: 0 });
   const isHoriz = useRef<boolean | null>(null);
 
+  /** Measure the image's rendered size (without transform applied). */
+  const measureBase = () => {
+    const img = imgRef.current;
+    if (!img) return;
+    // Temporarily clear transform to get real layout size
+    const prev = img.style.transform;
+    img.style.transform = 'none';
+    baseSizeRef.current = { w: img.offsetWidth, h: img.offsetHeight };
+    img.style.transform = prev;
+  };
+
   const applyTransform = (scale: number, tx: number, ty: number, animated = false) => {
     const img = imgRef.current;
     const el = containerRef.current;
     if (!img || !el) return;
-    const cw = el.offsetWidth;
-    const ch = el.offsetHeight;
-    const maxTx = (cw * (scale - 1)) / 2;
-    const maxTy = (ch * (scale - 1)) / 2;
+
+    const bw = baseSizeRef.current.w || el.offsetWidth;
+    const bh = baseSizeRef.current.h || el.offsetHeight;
+
+    // How much the scaled image overflows the container on each side
+    const maxTx = Math.max(0, (bw * scale - el.offsetWidth) / 2);
+    const maxTy = Math.max(0, (bh * scale - el.offsetHeight) / 2);
+
     const cx = Math.max(-maxTx, Math.min(maxTx, tx));
     const cy = Math.max(-maxTy, Math.min(maxTy, ty));
+
     stateRef.current = { scale, tx: cx, ty: cy };
     img.style.transition = animated ? 'transform 0.22s ease' : 'none';
-    img.style.transform = `translate(${cx}px, ${cy}px) scale(${scale})`;
+    img.style.transform =
+      scale === 1 && cx === 0 && cy === 0
+        ? 'none'
+        : `translate(${cx}px, ${cy}px) scale(${scale})`;
   };
 
   const resetZoom = (animated = false) => applyTransform(1, 0, 0, animated);
 
-  const dist = (t: TouchList) => {
+  const getTouchDist = (t: TouchList) => {
     const dx = t[0].clientX - t[1].clientX;
     const dy = t[0].clientY - t[1].clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  // Reset when slide changes
+  // Re-measure and reset when src changes
   useEffect(() => {
     stateRef.current = { scale: 1, tx: 0, ty: 0 };
+    baseSizeRef.current = { w: 0, h: 0 };
     if (imgRef.current) {
       imgRef.current.style.transition = 'none';
-      imgRef.current.style.transform = 'translate(0px, 0px) scale(1)';
+      imgRef.current.style.transform = 'none';
     }
   }, [src]);
 
-  // Reset on orientation change / resize so image always re-fits
+  // Reset on orientation change / window resize
   useEffect(() => {
-    const onResize = () => resetZoom(true);
+    const onResize = () => {
+      measureBase();
+      resetZoom(false);
+    };
     window.addEventListener('orientationchange', onResize);
     window.addEventListener('resize', onResize);
     return () => {
@@ -62,7 +95,7 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
     };
   }, []);
 
-  // Touch handlers (non-passive so we can preventDefault)
+  // Touch handlers (non-passive to allow preventDefault)
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -86,7 +119,7 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
         }
       } else if (e.touches.length === 2) {
         e.preventDefault();
-        pinchDist.current = dist(e.touches);
+        pinchDist.current = getTouchDist(e.touches);
       }
     };
 
@@ -94,8 +127,8 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
       if (e.touches.length === 2) {
         e.preventDefault();
         if (pinchDist.current === null) return;
-        const nd = dist(e.touches);
-        const newScale = Math.max(1, Math.min(6, stateRef.current.scale * (nd / pinchDist.current)));
+        const nd = getTouchDist(e.touches);
+        const newScale = Math.max(1, Math.min(8, stateRef.current.scale * (nd / pinchDist.current)));
         pinchDist.current = nd;
         applyTransform(newScale, stateRef.current.tx, stateRef.current.ty);
       } else if (e.touches.length === 1) {
@@ -142,20 +175,41 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
   return (
     <div
       ref={containerRef}
-      style={{ position: 'absolute', inset: 0, overflow: 'hidden', touchAction: 'none', background: '#000' }}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'hidden',
+        touchAction: 'none',
+        background: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       <img
         ref={imgRef}
         src={src}
         alt={alt}
         draggable={false}
+        onLoad={() => {
+          measureBase();
+          resetZoom(false);
+        }}
         style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
+          /*
+           * KEY FIX: Never force the image larger than its natural size.
+           * max-width/max-height scale it DOWN if the screen is smaller,
+           * but if the screen is larger the image stays at natural resolution.
+           * This preserves full image quality — no CSS upscaling.
+           */
+          maxWidth: '100%',
+          maxHeight: '100%',
+          width: 'auto',
+          height: 'auto',
+          display: 'block',
           objectFit: 'contain',
           transformOrigin: 'center center',
+          imageRendering: 'high-quality' as any,
           userSelect: 'none',
           pointerEvents: 'none',
         }}
@@ -164,11 +218,11 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
         <p
           style={{
             position: 'absolute',
-            bottom: 10,
+            bottom: 12,
             left: '50%',
             transform: 'translateX(-50%)',
-            color: 'rgba(255,255,255,0.35)',
-            fontSize: 11,
+            color: 'rgba(255,255,255,0.3)',
+            fontSize: 12,
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             userSelect: 'none',
