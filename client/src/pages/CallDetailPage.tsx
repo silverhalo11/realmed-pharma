@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import ZoomableImage from '@/components/ZoomableImage';
 import {
   Phone,
   Package,
@@ -51,23 +52,25 @@ const CatalogModal = ({
   const [current, setCurrent] = useState(initialIndex);
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-      <div className="flex items-center justify-between px-4 h-14 bg-black/80">
-        <button onClick={onClose} className="flex items-center gap-1 text-white text-sm">
+      <div className="flex items-center justify-between px-4 h-14 bg-black/80 flex-shrink-0">
+        <button onClick={onClose} className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white text-sm font-medium">
           <X className="w-5 h-5" /> Close
         </button>
         <span className="text-white text-sm font-semibold">{slides[current]?.name}</span>
         <span className="text-white/60 text-sm">{current + 1}/{slides.length}</span>
       </div>
-      <div className="flex-1 flex items-center justify-center relative">
-        <img
+      <div className="flex-1 relative overflow-hidden">
+        <ZoomableImage
+          key={current}
           src={slides[current]?.url}
           alt={slides[current]?.name}
-          className="max-w-full max-h-full object-contain"
+          onSwipeLeft={() => current < slides.length - 1 && setCurrent((c) => c + 1)}
+          onSwipeRight={() => current > 0 && setCurrent((c) => c - 1)}
         />
         {current > 0 && (
           <button
             onClick={() => setCurrent((c) => c - 1)}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white z-20"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -75,7 +78,7 @@ const CatalogModal = ({
         {current < slides.length - 1 && (
           <button
             onClick={() => setCurrent((c) => c + 1)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white z-20"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
