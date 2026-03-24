@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ZoomableImage from '@/components/ZoomableImage';
 import {
@@ -40,6 +40,15 @@ const getSlideUrl = (slide: number | null | undefined) => {
   return `/catalog/slide-${String(slide).padStart(2, '0')}.png`;
 };
 
+const fsRequest = () => {
+  const el = document.documentElement as any;
+  (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen)?.call(el);
+};
+const fsExit = () => {
+  const d = document as any;
+  (d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen)?.call(d);
+};
+
 const CatalogModal = ({
   slides,
   initialIndex,
@@ -50,16 +59,27 @@ const CatalogModal = ({
   onClose: () => void;
 }) => {
   const [current, setCurrent] = useState(initialIndex);
+
+  useEffect(() => {
+    fsRequest();
+    return () => { fsExit(); };
+  }, []);
+
+  const handleClose = () => { fsExit(); onClose(); };
+
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-      <div className="flex items-center justify-between px-4 h-14 bg-black/80 flex-shrink-0">
-        <button onClick={onClose} className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white text-sm font-medium">
-          <X className="w-5 h-5" /> Close
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#000', display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, background: 'rgba(0,0,0,0.85)', flexShrink: 0 }}>
+        <button
+          onClick={handleClose}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 44, padding: '0 16px', borderRadius: 999, background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+        >
+          <X size={20} /> Close
         </button>
-        <span className="text-white text-sm font-semibold">{slides[current]?.name}</span>
-        <span className="text-white/60 text-sm">{current + 1}/{slides.length}</span>
+        <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>{slides[current]?.name}</span>
+        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>{current + 1}/{slides.length}</span>
       </div>
-      <div className="flex-1 relative overflow-hidden">
+      <div style={{ flex: 1, position: 'relative' }}>
         <ZoomableImage
           key={current}
           src={slides[current]?.url}
@@ -70,17 +90,17 @@ const CatalogModal = ({
         {current > 0 && (
           <button
             onClick={() => setCurrent((c) => c - 1)}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white z-20"
+            style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft size={28} />
           </button>
         )}
         {current < slides.length - 1 && (
           <button
             onClick={() => setCurrent((c) => c + 1)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 flex items-center justify-center text-white z-20"
+            style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight size={28} />
           </button>
         )}
       </div>
