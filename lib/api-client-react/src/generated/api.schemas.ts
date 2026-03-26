@@ -8,3 +8,29 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  imageUrl?: string | null;
+  createdAt: string;
+}
+
+export interface CreateProductRequest {
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  imageUrl?: string | null;
+}
+
+export interface UploadImageResponse {
+  imageUrl: string;
+}
+
+export type UploadProductImageBody = {
+  image: Blob;
+};

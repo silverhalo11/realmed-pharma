@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: API specification
@@ -10,6 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: products
+    description: Product operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List all products
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get a product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      summary: Delete a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Product deleted
+  /products/upload-image:
+    post:
+      operationId: uploadProductImage
+      tags: [products]
+      summary: Upload a product image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+              required:
+                - image
+      responses:
+        "200":
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadImageResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +122,55 @@ components:
           type: string
       required:
         - status
-
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        category:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - price
+        - category
+        - createdAt
+    CreateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        category:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+      required:
+        - name
+        - description
+        - price
+        - category
+    UploadImageResponse:
+      type: object
+      properties:
+        imageUrl:
+          type: string
+      required:
+        - imageUrl

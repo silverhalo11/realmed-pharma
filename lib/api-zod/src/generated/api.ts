@@ -14,3 +14,63 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all products
+ */
+export const ListProductsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string(),
+  price: zod.number(),
+  category: zod.string(),
+  imageUrl: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+export const ListProductsResponse = zod.array(ListProductsResponseItem);
+
+/**
+ * @summary Create a new product
+ */
+export const CreateProductBody = zod.object({
+  name: zod.string(),
+  description: zod.string(),
+  price: zod.number(),
+  category: zod.string(),
+  imageUrl: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a product by ID
+ */
+export const GetProductParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProductResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string(),
+  price: zod.number(),
+  category: zod.string(),
+  imageUrl: zod.string().nullish(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Delete a product
+ */
+export const DeleteProductParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Upload a product image
+ */
+export const UploadProductImageBody = zod.object({
+  image: zod.instanceof(File),
+});
+
+export const UploadProductImageResponse = zod.object({
+  imageUrl: zod.string(),
+});

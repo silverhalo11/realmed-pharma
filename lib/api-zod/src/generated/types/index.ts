@@ -6,4 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./createProductRequest";
 export * from "./healthStatus";
+export * from "./product";
+export * from "./uploadImageResponse";
+export * from "./uploadProductImageBody";
