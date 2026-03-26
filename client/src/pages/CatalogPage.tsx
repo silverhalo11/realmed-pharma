@@ -40,7 +40,6 @@ const CatalogPage = () => {
   const [current, setCurrent] = useState(initialSlide);
   const [exiting, setExiting] = useState(false);
   const [fsActive, setFsActive] = useState(false);
-  const thumbsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     requestFS();
@@ -76,12 +75,6 @@ const CatalogPage = () => {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [goNext, goPrev, navigate, returnTo, customImage]);
-
-  useEffect(() => {
-    if (customImage || !thumbsRef.current) return;
-    const btn = thumbsRef.current.children[current] as HTMLElement;
-    if (btn) btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
-  }, [current, customImage]);
 
   const handleClose = () => {
     if (exiting) return;
@@ -268,48 +261,6 @@ const CatalogPage = () => {
         )}
       </div>
 
-      {/* Thumbnail strip */}
-      <div style={{
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(8px)',
-        padding: '8px 8px 10px',
-        flexShrink: 0,
-      }}>
-        <div
-          ref={thumbsRef}
-          style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}
-        >
-          {catalogSlides.map((src, idx) => (
-            <button
-              key={idx}
-              onClick={() => goTo(idx)}
-              data-testid={`thumbnail-${idx + 1}`}
-              style={{
-                flexShrink: 0,
-                width: idx === current ? 64 : 52,
-                height: idx === current ? 44 : 36,
-                borderRadius: 6,
-                overflow: 'hidden',
-                border: 'none',
-                cursor: 'pointer',
-                outline: idx === current ? '2.5px solid #fff' : 'none',
-                opacity: idx === current ? 1 : 0.4,
-                transition: 'all 0.2s ease',
-                padding: 0,
-              }}
-            >
-              {Math.abs(idx - current) <= 10 && (
-                <img
-                  src={src}
-                  alt={`Thumb ${idx + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  loading="lazy"
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
