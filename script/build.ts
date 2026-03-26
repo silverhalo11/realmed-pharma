@@ -20,7 +20,6 @@ const allowlist = [
   "memorystore",
   "cloudinary",
   "multer",
-  "multer-storage-cloudinary",
   "nanoid",
   "nodemailer",
   "openai",
