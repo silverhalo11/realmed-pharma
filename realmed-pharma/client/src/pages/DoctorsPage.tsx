@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 
-const emptyDoctor = { name: '', degree: '', dob: '', clinic: '', phone: '', address: '', specialty: '', notes: '', medicalStore: '', prescribedProducts: [] as string[] };
+const emptyDoctor = { name: '', degree: '', dob: '', clinic: '', phone: '', address: '', city: '', specialty: '', notes: '', medicalStore: '', prescribedProducts: [] as string[] };
 
 const DoctorsPage = () => {
   const navigate = useNavigate();
@@ -34,6 +34,7 @@ const DoctorsPage = () => {
       clinic: d.clinic || '',
       phone: d.phone || '',
       address: d.address || '',
+      city: d.city || '',
       specialty: d.specialty || '',
       notes: d.notes || '',
       medicalStore: d.medicalStore || '',
@@ -72,13 +73,20 @@ const DoctorsPage = () => {
                 className="flex-1 min-w-0 text-left"
                 data-testid={`doctor-card-${d.id}`}
               >
-                <p className="font-semibold text-card-foreground truncate">{d.name}{d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}</p>
+                <p className="font-semibold text-card-foreground truncate">
+                  {d.name}
+                  {d.degree && <span className="text-muted-foreground font-normal text-sm"> ({d.degree})</span>}
+                </p>
                 <p className="text-sm text-muted-foreground">{d.specialty}</p>
                 <p className="text-sm text-muted-foreground truncate">{d.clinic}</p>
               </button>
               <div className="flex items-center gap-1 ml-2">
-                <button onClick={() => openEdit(d)} className="p-2 rounded-lg hover:bg-secondary"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
-                <button onClick={() => deleteDoctor(d.id)} className="p-2 rounded-lg hover:bg-destructive/10"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                <button onClick={() => openEdit(d)} className="p-2 rounded-lg hover:bg-secondary">
+                  <Pencil className="w-4 h-4 text-muted-foreground" />
+                </button>
+                <button onClick={() => deleteDoctor(d.id)} className="p-2 rounded-lg hover:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </button>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
@@ -90,15 +98,21 @@ const DoctorsPage = () => {
         <DialogContent className="max-w-[95vw] rounded-xl">
           <DialogHeader><DialogTitle>{editing ? 'Edit Doctor' : 'Add Doctor'}</DialogTitle></DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {(['name', 'degree', 'clinic', 'phone', 'address', 'specialty', 'medicalStore', 'notes'] as const).map((key) => {
+            {(['name', 'degree', 'clinic', 'phone', 'address', 'city', 'specialty', 'medicalStore', 'notes'] as const).map((key) => {
               const labels: Record<string, string> = {
                 degree: 'Degree (e.g. MBBS, MD)',
                 medicalStore: 'Medical Store Name',
+                city: 'City',
               };
               return (
                 <div key={key}>
                   <Label className="capitalize text-sm">{labels[key] || key}</Label>
-                  <Input value={form[key]} onChange={(e) => set(key, e.target.value)} placeholder={`Enter ${key === 'medicalStore' ? 'medical store name' : key}`} data-testid={`input-${key}`} />
+                  <Input
+                    value={form[key]}
+                    onChange={(e) => set(key, e.target.value)}
+                    placeholder={`Enter ${key === 'medicalStore' ? 'medical store name' : key}`}
+                    data-testid={`input-${key}`}
+                  />
                 </div>
               );
             })}

@@ -1,12 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Stethoscope, Package, ShoppingCart, MapPin } from 'lucide-react';
+import { LayoutDashboard, Stethoscope, Package, ShoppingCart, Bell, Phone } from 'lucide-react';
 
 const tabs = [
   { label: 'Home', icon: LayoutDashboard, path: '/' },
   { label: 'Doctors', icon: Stethoscope, path: '/doctors' },
   { label: 'Products', icon: Package, path: '/products' },
   { label: 'Orders', icon: ShoppingCart, path: '/orders' },
-  { label: 'Visits', icon: MapPin, path: '/visits' },
+  { label: 'Reminders', icon: Bell, path: '/reminders' },
+  { label: 'Calls', icon: Phone, path: '/calls' },
 ];
 
 const BottomNav = () => {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight, Images, BookOpen } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAppStore } from '@/store/useAppStore';
+import ZoomableImage from '@/components/ZoomableImage';
 
 const TOTAL_SLIDES = 90;
 
@@ -10,317 +10,233 @@ const slides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
   return `/catalog/slide-${num}.png`;
 });
 
+const requestFS = () => {
+  const el = document.documentElement as any;
+  (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen)?.call(el);
+};
+
+const exitFS = () => {
+  const d = document as any;
+  (d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen || d.msExitFullscreen)?.call(d);
+};
+
+const isFullscreen = () => !!(
+  document.fullscreenElement ||
+  (document as any).webkitFullscreenElement ||
+  (document as any).mozFullScreenElement
+);
+
 const CatalogPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { products } = useAppStore();
-
-  const productsWithImages = products.filter((p) => p.imageUrl && p.imageUrl.trim() !== '');
-
   const rawSlide = Number(searchParams.get('slide') || 1);
   const initialSlide = Number.isFinite(rawSlide) ? Math.max(0, Math.min(TOTAL_SLIDES - 1, rawSlide - 1)) : 0;
   const returnTo = searchParams.get('from') || '/products';
-
-  // Default to product images tab if there are any, otherwise slides
-  const [activeTab, setActiveTab] = useState<'slides' | 'products'>(
-    productsWithImages.length > 0 && !searchParams.get('slide') ? 'products' : 'slides'
-  );
-
   const [current, setCurrent] = useState(initialSlide);
-  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [exiting, setExiting] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const startX = useRef(0);
-  const startY = useRef(0);
-  const isHorizontalSwipe = useRef<boolean | null>(null);
+  const [fsActive, setFsActive] = useState(false);
+  const thumbsRef = useRef<HTMLDivElement>(null);
 
+  // Request fullscreen on open
   useEffect(() => {
-    const lockLandscape = async () => {
-      try {
-        if (screen.orientation && (screen.orientation as any).lock) {
-          await (screen.orientation as any).lock('landscape');
-        }
-      } catch {
-        // Orientation lock not supported or not allowed — silently ignore
-      }
-    };
-    if (activeTab === 'slides') lockLandscape();
+    requestFS();
+    const onFsChange = () => setFsActive(isFullscreen());
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
     return () => {
-      try {
-        if (screen.orientation && screen.orientation.unlock) {
-          screen.orientation.unlock();
-        }
-      } catch {
-        // ignore
-      }
+      exitFS();
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
     };
-  }, [activeTab]);
+  }, []);
+
+  const toggleFS = () => {
+    isFullscreen() ? exitFS() : requestFS();
+  };
 
   const goTo = useCallback((idx: number) => {
-    if (idx < 0 || idx >= TOTAL_SLIDES || isAnimating) return;
-    setIsAnimating(true);
+    if (idx < 0 || idx >= TOTAL_SLIDES) return;
     setCurrent(idx);
-    setDragOffset(0);
-    setTimeout(() => setIsAnimating(false), 350);
-  }, [isAnimating]);
+  }, []);
 
   const goNext = useCallback(() => goTo(current + 1), [current, goTo]);
   const goPrev = useCallback(() => goTo(current - 1), [current, goTo]);
 
   useEffect(() => {
-    if (activeTab !== 'slides') return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') goNext();
       if (e.key === 'ArrowLeft') goPrev();
-      if (e.key === 'Escape') navigate(returnTo);
+      if (e.key === 'Escape') { exitFS(); setTimeout(() => navigate(returnTo), 50); }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [goNext, goPrev, navigate, activeTab]);
+  }, [goNext, goPrev, navigate, returnTo]);
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (isAnimating) return;
-    setIsDragging(true);
-    isHorizontalSwipe.current = null;
-    startX.current = e.clientX;
-    startY.current = e.clientY;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  // Keep active thumbnail in view
+  useEffect(() => {
+    if (!thumbsRef.current) return;
+    const btn = thumbsRef.current.children[current] as HTMLElement;
+    if (btn) btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+  }, [current]);
+
+  const handleClose = () => {
+    if (exiting) return;
+    setExiting(true);
+    exitFS();
+    setTimeout(() => navigate(returnTo), 50);
   };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - startX.current;
-    const dy = e.clientY - startY.current;
-
-    if (isHorizontalSwipe.current === null) {
-      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-        isHorizontalSwipe.current = Math.abs(dx) > Math.abs(dy);
-      }
-      return;
-    }
-
-    if (!isHorizontalSwipe.current) return;
-
-    if ((current === 0 && dx > 0) || (current === TOTAL_SLIDES - 1 && dx < 0)) {
-      setDragOffset(dx * 0.2);
-    } else {
-      setDragOffset(dx);
-    }
-  };
-
-  const onPointerUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-
-    const threshold = window.innerWidth * 0.15;
-
-    if (dragOffset < -threshold && current < TOTAL_SLIDES - 1) {
-      goNext();
-    } else if (dragOffset > threshold && current > 0) {
-      goPrev();
-    } else {
-      setDragOffset(0);
-    }
-  };
-
-  const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-  const translateX = -current * containerWidth + dragOffset;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col select-none" data-testid="catalog-fullscreen">
+    <div
+      data-testid="catalog-fullscreen"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        background: '#000',
+        display: 'flex',
+        flexDirection: 'column',
+        userSelect: 'none',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 h-14 bg-gradient-to-b from-black/90 to-black/60 backdrop-blur-sm z-10 flex-shrink-0">
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        height: 56,
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.5))',
+        flexShrink: 0,
+        zIndex: 10,
+      }}>
         <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (exiting) return;
-            setExiting(true);
-            setTimeout(() => navigate(returnTo), 50);
-          }}
-          className="relative z-20 flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white font-medium text-sm hover:bg-white/25 active:scale-95 transition-all"
+          onClick={handleClose}
           data-testid="button-close-catalog"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            height: 44, padding: '0 16px',
+            borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+            color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
+            cursor: 'pointer',
+          }}
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back</span>
+          <ArrowLeft size={20} />
+          Back
         </button>
 
-        {/* Tab switcher */}
-        <div className="flex items-center gap-1 bg-white/10 rounded-full p-1">
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all ${activeTab === 'products' ? 'bg-white text-black' : 'text-white/70'}`}
-          >
-            <Images className="w-3.5 h-3.5" />
-            Products {productsWithImages.length > 0 && `(${productsWithImages.length})`}
-          </button>
-          <button
-            onClick={() => setActiveTab('slides')}
-            className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all ${activeTab === 'slides' ? 'bg-white text-black' : 'text-white/70'}`}
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            Slides
-          </button>
-        </div>
+        <span
+          data-testid="text-slide-counter"
+          style={{
+            color: '#fff', fontSize: 15, fontWeight: 600,
+            background: 'rgba(255,255,255,0.15)',
+            padding: '4px 14px', borderRadius: 999,
+          }}
+        >
+          {current + 1} / {TOTAL_SLIDES}
+        </span>
 
-        {activeTab === 'slides' ? (
-          <span className="text-white text-sm font-semibold bg-white/15 px-3 py-1 rounded-full" data-testid="text-slide-counter">
-            {current + 1} / {TOTAL_SLIDES}
-          </span>
-        ) : (
-          <div className="w-[72px]" />
+        <button
+          onClick={toggleFS}
+          title={fsActive ? 'Exit fullscreen' : 'Enter fullscreen'}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            height: 44, padding: '0 16px',
+            borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+            color: '#fff', fontSize: 14, border: 'none', cursor: 'pointer',
+          }}
+        >
+          {fsActive ? <Minimize size={20} /> : <Maximize size={20} />}
+        </button>
+      </div>
+
+      {/* Slide area */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        <ZoomableImage
+          key={current}
+          src={slides[current]}
+          alt={`Slide ${current + 1}`}
+          onSwipeLeft={goNext}
+          onSwipeRight={goPrev}
+        />
+
+        {/* Prev button */}
+        {current > 0 && (
+          <button
+            onClick={goPrev}
+            data-testid="button-prev-slide"
+            style={{
+              position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
+              width: 52, height: 52, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.45)', border: 'none',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', zIndex: 20,
+            }}
+          >
+            <ChevronLeft size={28} />
+          </button>
+        )}
+
+        {/* Next button */}
+        {current < TOTAL_SLIDES - 1 && (
+          <button
+            onClick={goNext}
+            data-testid="button-next-slide"
+            style={{
+              position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+              width: 52, height: 52, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.45)', border: 'none',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', zIndex: 20,
+            }}
+          >
+            <ChevronRight size={28} />
+          </button>
         )}
       </div>
 
-      {/* Product Images Tab */}
-      {activeTab === 'products' && (
-        <div className="flex-1 overflow-y-auto bg-black">
-          {productsWithImages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-white/50">
-              <Images className="w-12 h-12" />
-              <p className="text-sm">No product images yet.</p>
-              <p className="text-xs">Add an image when creating a product.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-2 p-3">
-                {productsWithImages.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedImage({ url: p.imageUrl!, name: p.name })}
-                    className="rounded-xl overflow-hidden bg-white/5 border border-white/10 flex flex-col active:scale-95 transition-transform"
-                    data-testid={`product-image-${p.id}`}
-                  >
-                    <img
-                      src={p.imageUrl!}
-                      alt={p.name}
-                      className="w-full aspect-square object-contain bg-white/10"
-                    />
-                    <div className="px-2 py-1.5 text-left">
-                      <p className="text-white text-xs font-medium truncate">{p.name}</p>
-                      {p.category && <p className="text-white/50 text-[10px] truncate">{p.category}</p>}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Fullscreen image viewer */}
-      {selectedImage && (
+      {/* Thumbnail strip */}
+      <div style={{
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(8px)',
+        padding: '8px 8px 10px',
+        flexShrink: 0,
+      }}>
         <div
-          className="absolute inset-0 z-50 bg-black/95 flex flex-col"
-          onClick={() => setSelectedImage(null)}
+          ref={thumbsRef}
+          style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}
         >
-          <div className="flex items-center px-3 h-14 bg-gradient-to-b from-black/80 to-transparent">
+          {slides.map((src, idx) => (
             <button
-              onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}
-              className="flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white font-medium text-sm"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back
-            </button>
-            <p className="ml-3 text-white font-semibold truncate flex-1">{selectedImage.name}</p>
-          </div>
-          <div className="flex-1 flex items-center justify-center p-4">
-            <img
-              src={selectedImage.url}
-              alt={selectedImage.name}
-              className="max-w-full max-h-full object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Slides Tab */}
-      {activeTab === 'slides' && (
-        <>
-          <div
-            ref={containerRef}
-            className="flex-1 relative overflow-hidden touch-pan-y"
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          >
-            <div
-              className="flex h-full"
+              key={idx}
+              onClick={() => goTo(idx)}
+              data-testid={`thumbnail-${idx + 1}`}
               style={{
-                transform: `translateX(${translateX}px)`,
-                transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                width: `${TOTAL_SLIDES * containerWidth}px`,
+                flexShrink: 0,
+                width: idx === current ? 64 : 52,
+                height: idx === current ? 44 : 36,
+                borderRadius: 6,
+                overflow: 'hidden',
+                border: 'none',
+                cursor: 'pointer',
+                outline: idx === current ? '2.5px solid #fff' : 'none',
+                opacity: idx === current ? 1 : 0.4,
+                transition: 'all 0.2s ease',
+                padding: 0,
               }}
             >
-              {slides.map((src, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-center"
-                  style={{ width: containerWidth, height: '100%' }}
-                >
-                  {Math.abs(idx - current) <= 2 && (
-                    <img
-                      src={src}
-                      alt={`Slide ${idx + 1}`}
-                      className="max-w-full max-h-full object-contain"
-                      draggable={false}
-                      data-testid={`catalog-slide-${idx + 1}`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {current > 0 && (
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
-                data-testid="button-prev-slide"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
-
-            {current < TOTAL_SLIDES - 1 && (
-              <button
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); goNext(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
-                data-testid="button-next-slide"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            )}
-          </div>
-
-          <div className="bg-black/80 backdrop-blur-sm py-2 px-2 flex-shrink-0">
-            <div className="flex gap-1 overflow-x-auto pb-1 snap-x scrollbar-hide">
-              {slides.map((src, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => goTo(idx)}
-                  className={`flex-shrink-0 rounded-md overflow-hidden transition-all duration-200 ${
-                    idx === current
-                      ? 'w-14 h-10 ring-2 ring-white opacity-100'
-                      : 'w-12 h-8 opacity-40 hover:opacity-70'
-                  }`}
-                  data-testid={`thumbnail-${idx + 1}`}
-                >
-                  {Math.abs(idx - current) <= 10 && (
-                    <img src={src} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+              {Math.abs(idx - current) <= 10 && (
+                <img
+                  src={src}
+                  alt={`Thumb ${idx + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  loading="lazy"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

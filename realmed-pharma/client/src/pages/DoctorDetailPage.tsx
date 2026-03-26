@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Phone, MapPin, GraduationCap, Calendar, Building2, Stethoscope, StickyNote, Plus, X, Pill, BookOpen, ChevronLeft, ChevronRight, ArrowLeft, Store } from 'lucide-react';
+import ZoomableImage from '@/components/ZoomableImage';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore, Product } from '@/store/useAppStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,124 +9,94 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
+const fsRequest = () => {
+  const el = document.documentElement as any;
+  (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen)?.call(el);
+};
+const fsExit = () => {
+  const d = document as any;
+  (d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen)?.call(d);
+};
+
 const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { product: Product; src: string }[]; initialIndex: number; onClose: () => void }) => {
   const [current, setCurrent] = useState(initialIndex);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const startX = useRef(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fsRequest();
+    return () => { fsExit(); };
+  }, []);
 
   const goTo = (idx: number) => {
     if (idx >= 0 && idx < slides.length) setCurrent(idx);
-    setDragOffset(0);
   };
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    startX.current = e.clientX;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    setDragOffset(e.clientX - startX.current);
-  };
-
-  const onPointerUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    const threshold = window.innerWidth * 0.15;
-    if (dragOffset < -threshold && current < slides.length - 1) goTo(current + 1);
-    else if (dragOffset > threshold && current > 0) goTo(current - 1);
-    else setDragOffset(0);
-  };
-
-  const containerWidth = containerRef.current?.offsetWidth || window.innerWidth;
-  const translateX = -current * containerWidth + dragOffset;
+  const handleClose = () => { fsExit(); onClose(); };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col select-none" data-testid="prescribed-catalog-viewer">
-      <div className="flex items-center justify-between px-3 h-14 bg-gradient-to-b from-black/90 to-black/60 backdrop-blur-sm z-10">
+    <div data-testid="prescribed-catalog-viewer" style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#000', display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.5))', flexShrink: 0, zIndex: 10 }}>
         <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={onClose}
-          className="relative z-20 flex items-center gap-1.5 h-10 px-3 rounded-full bg-white/15 text-white font-medium text-sm hover:bg-white/25 active:scale-95 transition-all"
+          onClick={handleClose}
           data-testid="button-close-prescribed-catalog"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 44, padding: '0 16px', borderRadius: 999, background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer' }}
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back</span>
+          <ArrowLeft size={20} />
+          Back
         </button>
-        <span className="text-white text-sm font-semibold bg-white/15 px-3 py-1 rounded-full" data-testid="text-prescribed-slide-counter">
+        <span data-testid="text-prescribed-slide-counter" style={{ color: '#fff', fontSize: 15, fontWeight: 600, background: 'rgba(255,255,255,0.15)', padding: '4px 14px', borderRadius: 999 }}>
           {current + 1} / {slides.length}
         </span>
-        <div className="w-[72px]" />
+        <div style={{ width: 88 }} />
       </div>
 
-      <div className="absolute top-14 left-0 right-0 z-10 flex items-center justify-center py-2">
-        <span className="bg-primary/90 text-white text-xs font-semibold px-3 py-1 rounded-full" data-testid="text-prescribed-product-name">
+      {/* Product name label */}
+      <div style={{ position: 'absolute', top: 56, left: 0, right: 0, zIndex: 20, display: 'flex', justifyContent: 'center', padding: '8px 0', pointerEvents: 'none' }}>
+        <span data-testid="text-prescribed-product-name" style={{ background: 'rgba(var(--primary), 0.9)', color: '#fff', fontSize: 13, fontWeight: 700, padding: '4px 14px', borderRadius: 999 }}>
           {slides[current]?.product.name}
         </span>
       </div>
 
-      <div
-        ref={containerRef}
-        className="flex-1 relative overflow-hidden touch-pan-y"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        <div
-          className="flex h-full"
-          style={{
-            transform: `translateX(${translateX}px)`,
-            transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            width: `${slides.length * containerWidth}px`,
-          }}
-        >
-          {slides.map((s, idx) => (
-            <div key={idx} className="flex items-center justify-center" style={{ width: containerWidth, height: '100%' }}>
-              {Math.abs(idx - current) <= 2 && (
-                <img src={s.src} alt={s.product.name} className="max-w-full max-h-full object-contain" draggable={false} />
-              )}
-            </div>
-          ))}
-        </div>
-
+      {/* Slide area */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        <ZoomableImage
+          key={current}
+          src={slides[current]?.src}
+          alt={slides[current]?.product.name}
+          onSwipeLeft={() => goTo(current + 1)}
+          onSwipeRight={() => goTo(current - 1)}
+        />
         {current > 0 && (
           <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); goTo(current - 1); }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
+            onClick={() => goTo(current - 1)}
             data-testid="button-prev-prescribed-slide"
+            style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft size={28} />
           </button>
         )}
         {current < slides.length - 1 && (
           <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); goTo(current + 1); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/40 flex items-center justify-center text-white transition-all active:scale-90 z-20"
+            onClick={() => goTo(current + 1)}
             data-testid="button-next-prescribed-slide"
+            style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight size={28} />
           </button>
         )}
       </div>
 
-      <div className="bg-black/80 backdrop-blur-sm py-2 px-3">
-        <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Thumbnail strip */}
+      <div style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', padding: '8px 12px 10px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
           {slides.map((s, idx) => (
             <button
               key={idx}
               onClick={() => goTo(idx)}
-              className={`flex-shrink-0 rounded-lg overflow-hidden transition-all ${
-                idx === current ? 'ring-2 ring-white opacity-100' : 'opacity-40 hover:opacity-70'
-              }`}
+              style={{ flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: 'none', cursor: 'pointer', outline: idx === current ? '2.5px solid #fff' : 'none', opacity: idx === current ? 1 : 0.4, padding: 0 }}
             >
-              <img src={s.src} alt={s.product.name} className="w-16 h-10 object-cover" loading="lazy" />
-              <p className="text-[9px] text-white text-center truncate px-1 bg-black/60">{s.product.name}</p>
+              <img src={s.src} alt={s.product.name} style={{ width: 64, height: 40, objectFit: 'cover', display: 'block' }} loading="lazy" />
+              <p style={{ fontSize: 9, color: '#fff', textAlign: 'center', padding: '1px 4px', background: 'rgba(0,0,0,0.6)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{s.product.name}</p>
             </button>
           ))}
         </div>
@@ -162,7 +133,7 @@ const DoctorDetailPage = () => {
     .filter((p): p is Product => !!p);
 
   const prescribedSlides = prescribed
-    .filter((p) => (p.catalogSlide ?? 0) > 0)
+    .filter((p) => p.catalogSlide > 0)
     .map((p) => ({
       product: p,
       src: `/catalog/slide-${String(p.catalogSlide).padStart(2, '0')}.png`,
@@ -260,7 +231,7 @@ const DoctorDetailPage = () => {
                     <p className="font-medium text-card-foreground truncate">{p.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{p.composition || p.category}</p>
                   </div>
-                  {(p.catalogSlide ?? 0) > 0 && (
+                  {p.catalogSlide > 0 && (
                     <button
                       onClick={() => openCatalogForProduct(p.id)}
                       className="p-2 rounded-lg hover:bg-primary/10"

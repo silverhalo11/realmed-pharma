@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Product Catalogue"
+title = "RealMed Pharma"
 version = "1.0.0"
 id = "artifacts/product-catalogue"
 router = "path"
@@ -11,21 +11,11 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
-localPort = 24063
+paths = [ "/api", "/" ]
+localPort = 5000
 
 [services.development]
-run = "pnpm --filter @workspace/product-catalogue run dev"
-
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/product-catalogue", "run", "build" ]
-publicDir = "artifacts/product-catalogue/dist/public"
-serve = "static"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+run = "cd /home/runner/workspace/realmed-pharma && NODE_ENV=development npm run dev"
 
 [services.env]
-PORT = "24063"
-BASE_PATH = "/"
+PORT = "5000"

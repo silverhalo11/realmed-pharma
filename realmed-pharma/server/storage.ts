@@ -1,9 +1,9 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import {
-  users, doctors, products, orders, visits, reminders,
+  users, doctors, products, orders, visits, reminders, calls,
   type User, type InsertUser,
-  type Doctor, type Product, type Order, type Visit, type Reminder,
+  type Doctor, type Product, type Order, type Visit, type Reminder, type Call,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -22,7 +22,7 @@ export interface IStorage {
   addProduct(userId: string, data: Omit<Product, 'id' | 'userId'>): Promise<Product>;
   updateProduct(userId: string, id: string, data: Partial<Product>): Promise<Product | undefined>;
   deleteProduct(userId: string, id: string): Promise<void>;
-  seedProducts(userId: string, productList: Array<Omit<Product, 'id' | 'userId' | 'imageUrl'> & { imageUrl?: string | null }>): Promise<void>;
+  seedProducts(userId: string, productList: Omit<Product, 'id' | 'userId'>[]): Promise<void>;
 
   getOrders(userId: string): Promise<Order[]>;
   addOrder(userId: string, data: Omit<Order, 'id' | 'userId'>): Promise<Order>;
@@ -37,6 +37,11 @@ export interface IStorage {
   addReminder(userId: string, data: Omit<Reminder, 'id' | 'userId'>): Promise<Reminder>;
   toggleReminder(userId: string, id: string): Promise<Reminder | undefined>;
   deleteReminder(userId: string, id: string): Promise<void>;
+
+  getCalls(userId: string): Promise<Call[]>;
+  addCall(userId: string, data: Omit<Call, 'id' | 'userId'>): Promise<Call>;
+  updateCall(userId: string, id: string, data: Partial<Call>): Promise<Call | undefined>;
+  deleteCall(userId: string, id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -103,7 +108,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(products).where(and(eq(products.id, id), eq(products.userId, userId)));
   }
 
-  async seedProducts(userId: string, productList: Array<Omit<Product, 'id' | 'userId' | 'imageUrl'> & { imageUrl?: string | null }>) {
+  async seedProducts(userId: string, productList: Omit<Product, 'id' | 'userId'>[]) {
     const existing = await db.select().from(products).where(and(eq(products.userId, userId), eq(products.isSeeded, true)));
     if (existing.length > 0) return;
     const values = productList.map((p) => ({ ...p, userId, isSeeded: true }));
@@ -163,6 +168,25 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReminder(userId: string, id: string) {
     await db.delete(reminders).where(and(eq(reminders.id, id), eq(reminders.userId, userId)));
+  }
+
+  async getCalls(userId: string) {
+    return db.select().from(calls).where(eq(calls.userId, userId));
+  }
+
+  async addCall(userId: string, data: Omit<Call, 'id' | 'userId'>) {
+    const [call] = await db.insert(calls).values({ ...data, userId }).returning();
+    return call;
+  }
+
+  async updateCall(userId: string, id: string, data: Partial<Call>) {
+    const { id: _id, userId: _uid, ...rest } = data;
+    const [call] = await db.update(calls).set(rest).where(and(eq(calls.id, id), eq(calls.userId, userId))).returning();
+    return call;
+  }
+
+  async deleteCall(userId: string, id: string) {
+    await db.delete(calls).where(and(eq(calls.id, id), eq(calls.userId, userId)));
   }
 }
 

@@ -1,34 +1,8 @@
-import express from "express";
 import type { Express, Request, Response } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { DEFAULT_PRODUCTS } from "./seedProducts";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, file, cb) => {
-      const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-      cb(null, `${unique}${path.extname(file.originalname)}`);
-    },
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) cb(null, true);
-    else cb(new Error("Only image files are allowed"));
-  },
-});
 
 declare module "express-session" {
   interface SessionData {
@@ -149,18 +123,6 @@ export async function registerRoutes(
       const user = await storage.updateUser(req.session.userId!, { username, phone });
       if (!user) return res.status(404).json({ message: "User not found" });
       res.json({ id: user.id, username: user.username, email: user.email, phone: user.phone });
-    } catch (err: any) {
-      res.status(500).json({ message: err.message });
-    }
-  });
-
-  app.use("/uploads", express.static(uploadsDir));
-
-  app.post("/api/upload-image", requireAuth, upload.single("image"), async (req, res) => {
-    try {
-      if (!req.file) return res.status(400).json({ message: "No image provided" });
-      const imageUrl = `/uploads/${req.file.filename}`;
-      res.json({ imageUrl });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -301,6 +263,36 @@ export async function registerRoutes(
       await storage.deleteReminder(req.session.userId!, req.params.id);
       res.json({ ok: true });
     } catch (err: any) { console.error("DELETE /api/reminders error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
+  // Calls routes
+  app.get("/api/calls", requireAuth, async (req, res) => {
+    try {
+      const data = await storage.getCalls(req.session.userId!);
+      res.json(data);
+    } catch (err: any) { console.error("GET /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
+  app.post("/api/calls", requireAuth, async (req, res) => {
+    try {
+      const call = await storage.addCall(req.session.userId!, req.body);
+      res.json(call);
+    } catch (err: any) { console.error("POST /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
+  app.put("/api/calls/:id", requireAuth, async (req, res) => {
+    try {
+      const call = await storage.updateCall(req.session.userId!, req.params.id, req.body);
+      if (!call) return res.status(404).json({ message: "Call not found" });
+      res.json(call);
+    } catch (err: any) { console.error("PUT /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
+  });
+
+  app.delete("/api/calls/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteCall(req.session.userId!, req.params.id);
+      res.json({ ok: true });
+    } catch (err: any) { console.error("DELETE /api/calls error:", err.message); res.status(500).json({ message: err.message }); }
   });
 
   return httpServer;

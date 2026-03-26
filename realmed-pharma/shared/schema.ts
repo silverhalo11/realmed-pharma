@@ -20,6 +20,7 @@ export const doctors = pgTable("doctors", {
   clinic: text("clinic").default(""),
   phone: text("phone").default(""),
   address: text("address").default(""),
+  city: text("city").default(""),
   specialty: text("specialty").default(""),
   notes: text("notes").default(""),
   medicalStore: text("medical_store").default(""),
@@ -35,7 +36,6 @@ export const products = pgTable("products", {
   description: text("description").default(""),
   catalogSlide: integer("catalog_slide").default(0),
   isSeeded: boolean("is_seeded").default(false),
-  imageUrl: text("image_url").default(""),
 });
 
 export const orders = pgTable("orders", {
@@ -63,6 +63,16 @@ export const reminders = pgTable("reminders", {
   done: boolean("done").default(false),
 });
 
+export const calls = pgTable("calls", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  doctorId: varchar("doctor_id").notNull(),
+  date: text("date").default(""),
+  status: text("status").default("pending"), // pending, in-progress, completed
+  products: json("products").$type<{ productId: string; status: 'pending' | 'liked' | 'removed' }[]>().default([]),
+  notes: text("notes").default(""),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -75,6 +85,7 @@ export const insertProductSchema = createInsertSchema(products).omit({ id: true,
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, userId: true });
 export const insertVisitSchema = createInsertSchema(visits).omit({ id: true, userId: true });
 export const insertReminderSchema = createInsertSchema(reminders).omit({ id: true, userId: true });
+export const insertCallSchema = createInsertSchema(calls).omit({ id: true, userId: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -83,3 +94,4 @@ export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type Visit = typeof visits.$inferSelect;
 export type Reminder = typeof reminders.$inferSelect;
+export type Call = typeof calls.$inferSelect;
