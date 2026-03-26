@@ -80,7 +80,9 @@ const CatalogPage = () => {
     return () => window.removeEventListener('keydown', handleKey);
   }, [goNext, goPrev, navigate, returnTo, customImage]);
 
-  const handleClose = () => {
+  useEffect(() => { setImgError(false); }, [customImage]);
+
+    const handleClose = () => {
     if (exiting) return;
     setExiting(true);
     exitFS();
