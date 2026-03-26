@@ -4,22 +4,26 @@ import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { DEFAULT_PRODUCTS } from "./seedProducts";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
-const uploadsDir = process.env.NODE_ENV === "production"
-    ? path.resolve(process.cwd(), "dist", "public", "uploads", "products")
-    : path.resolve(process.cwd(), "client", "public", "uploads", "products");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "realmed-pharma/products",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    transformation: [{ quality: "auto", fetch_format: "auto" }],
+  } as any,
+});
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname) || ".jpg";
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-    },
-  }),
+  storage: cloudinaryStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
@@ -212,7 +216,7 @@ export async function registerRoutes(
   app.post("/api/uploads/product-image", requireAuth, upload.single("image"), (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: "No image file uploaded" });
-      const url = `/uploads/products/${req.file.filename}`;
+      const url = (req.file as any).path;
       res.json({ url });
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });
