@@ -26,6 +26,7 @@ export interface Product {
   description: string | null;
   catalogSlide: number | null;
   isSeeded: boolean | null;
+  imageUrl: string | null;
 }
 
 export interface Reminder {

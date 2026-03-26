@@ -79,6 +79,9 @@ export async function runMigrations() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
     `);
+    await client.query(`
+      ALTER TABLE IF EXISTS "products" ADD COLUMN IF NOT EXISTS "image_url" text DEFAULT '';
+    `);
     console.log("Database tables verified/created successfully");
   } catch (err) {
     console.error("Migration error:", err);

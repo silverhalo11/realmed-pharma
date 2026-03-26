@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, BookOpen, Search, Pencil } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, BookOpen, Search, Pencil, ImagePlus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore, Product } from '@/store/useAppStore';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
-const emptyForm = { name: '', category: '', composition: '', description: '', catalogSlide: 0 };
+const emptyForm = { name: '', category: '', composition: '', description: '', catalogSlide: 0, imageUrl: '' };
 
 const ProductsPage = () => {
   const navigate = useNavigate();
@@ -21,16 +21,62 @@ const ProductsPage = () => {
   const [form, setForm] = useState(emptyForm);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = products
     .filter((p) => filter === 'All' || p.category === filter)
     .filter((p) => !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.composition || '').toLowerCase().includes(search.toLowerCase()));
 
-  const openNew = () => { setEditing(null); setForm(emptyForm); setOpen(true); };
+  const openNew = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setImagePreview(null);
+    setOpen(true);
+  };
+
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, category: p.category || '', composition: p.composition || '', description: p.description || '', catalogSlide: p.catalogSlide || 0 });
+    setForm({
+      name: p.name,
+      category: p.category || '',
+      composition: p.composition || '',
+      description: p.description || '',
+      catalogSlide: p.catalogSlide || 0,
+      imageUrl: p.imageUrl || '',
+    });
+    setImagePreview(p.imageUrl || null);
     setOpen(true);
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const localPreview = URL.createObjectURL(file);
+    setImagePreview(localPreview);
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setForm((f) => ({ ...f, imageUrl: data.imageUrl }));
+    } catch {
+      setImagePreview(null);
+      setForm((f) => ({ ...f, imageUrl: '' }));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    setForm((f) => ({ ...f, imageUrl: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const save = () => {
@@ -43,6 +89,7 @@ const ProductsPage = () => {
     setOpen(false);
     setEditing(null);
     setForm(emptyForm);
+    setImagePreview(null);
   };
 
   const saveCat = () => {
@@ -98,12 +145,23 @@ const ProductsPage = () => {
               className="flex items-center gap-3 rounded-xl bg-card border p-3 shadow-sm"
               data-testid={`card-product-${p.id}`}
             >
+              {p.imageUrl ? (
+                <img
+                  src={p.imageUrl}
+                  alt={p.name}
+                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-card-foreground truncate">{p.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{p.composition || p.description}</p>
                 <Badge variant="outline" className="mt-1 text-[10px]">{p.category}</Badge>
               </div>
-              {p.catalogSlide > 0 && (
+              {(p.catalogSlide ?? 0) > 0 && (
                 <button
                   onClick={() => navigate(`/catalog?slide=${p.catalogSlide}&from=/products`)}
                   className="p-2 rounded-lg hover:bg-primary/10"
@@ -135,10 +193,55 @@ const ProductsPage = () => {
         </p>
       )}
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setForm(emptyForm); } }}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setForm(emptyForm); setImagePreview(null); } }}>
         <DialogContent className="max-w-[95vw] rounded-xl">
           <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+
+            {/* Image Upload */}
+            <div>
+              <Label>Product Image</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
+                data-testid="input-product-image"
+              />
+              {imagePreview ? (
+                <div className="relative mt-1.5 w-full">
+                  <img
+                    src={imagePreview}
+                    alt="Product preview"
+                    className="w-full h-40 object-contain rounded-lg border bg-muted"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 bg-background rounded-full p-1 shadow border"
+                  >
+                    <X className="w-4 h-4 text-destructive" />
+                  </button>
+                  {uploading && (
+                    <div className="absolute inset-0 bg-background/70 rounded-lg flex items-center justify-center text-sm text-muted-foreground">
+                      Uploading...
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-1.5 w-full h-28 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  data-testid="button-upload-image"
+                >
+                  <ImagePlus className="w-7 h-7" />
+                  <span className="text-sm font-medium">Tap to choose from gallery</span>
+                </button>
+              )}
+            </div>
+
             <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="input-product-name" /></div>
             <div>
               <Label>Category</Label>
@@ -168,7 +271,9 @@ const ProductsPage = () => {
               <p className="text-xs text-muted-foreground mt-1">Slide number from the product catalogue (1-90). Set to 0 for no catalogue image.</p>
             </div>
           </div>
-          <Button onClick={save} className="w-full mt-2" data-testid="button-save-product">{editing ? 'Update Product' : 'Add Product'}</Button>
+          <Button onClick={save} className="w-full mt-2" disabled={uploading} data-testid="button-save-product">
+            {uploading ? 'Uploading...' : editing ? 'Update Product' : 'Add Product'}
+          </Button>
         </DialogContent>
       </Dialog>
 

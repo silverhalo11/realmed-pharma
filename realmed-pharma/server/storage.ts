@@ -22,7 +22,7 @@ export interface IStorage {
   addProduct(userId: string, data: Omit<Product, 'id' | 'userId'>): Promise<Product>;
   updateProduct(userId: string, id: string, data: Partial<Product>): Promise<Product | undefined>;
   deleteProduct(userId: string, id: string): Promise<void>;
-  seedProducts(userId: string, productList: Omit<Product, 'id' | 'userId'>[]): Promise<void>;
+  seedProducts(userId: string, productList: Array<Omit<Product, 'id' | 'userId' | 'imageUrl'> & { imageUrl?: string | null }>): Promise<void>;
 
   getOrders(userId: string): Promise<Order[]>;
   addOrder(userId: string, data: Omit<Order, 'id' | 'userId'>): Promise<Order>;
@@ -103,7 +103,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(products).where(and(eq(products.id, id), eq(products.userId, userId)));
   }
 
-  async seedProducts(userId: string, productList: Omit<Product, 'id' | 'userId'>[]) {
+  async seedProducts(userId: string, productList: Array<Omit<Product, 'id' | 'userId' | 'imageUrl'> & { imageUrl?: string | null }>) {
     const existing = await db.select().from(products).where(and(eq(products.userId, userId), eq(products.isSeeded, true)));
     if (existing.length > 0) return;
     const values = productList.map((p) => ({ ...p, userId, isSeeded: true }));

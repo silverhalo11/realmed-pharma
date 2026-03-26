@@ -35,6 +35,7 @@ export const products = pgTable("products", {
   description: text("description").default(""),
   catalogSlide: integer("catalog_slide").default(0),
   isSeeded: boolean("is_seeded").default(false),
+  imageUrl: text("image_url").default(""),
 });
 
 export const orders = pgTable("orders", {

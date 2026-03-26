@@ -162,7 +162,7 @@ const DoctorDetailPage = () => {
     .filter((p): p is Product => !!p);
 
   const prescribedSlides = prescribed
-    .filter((p) => p.catalogSlide > 0)
+    .filter((p) => (p.catalogSlide ?? 0) > 0)
     .map((p) => ({
       product: p,
       src: `/catalog/slide-${String(p.catalogSlide).padStart(2, '0')}.png`,
@@ -260,7 +260,7 @@ const DoctorDetailPage = () => {
                     <p className="font-medium text-card-foreground truncate">{p.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{p.composition || p.category}</p>
                   </div>
-                  {p.catalogSlide > 0 && (
+                  {(p.catalogSlide ?? 0) > 0 && (
                     <button
                       onClick={() => openCatalogForProduct(p.id)}
                       className="p-2 rounded-lg hover:bg-primary/10"
