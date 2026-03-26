@@ -31,7 +31,11 @@ const CatalogPage = () => {
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('from') || '/products';
 
-  const customImage = searchParams.get('image') ? decodeURIComponent(searchParams.get('image')!) : null;
+  const rawImage = searchParams.get('image') || null;
+    let customImage: string | null = null;
+    if (rawImage) {
+      try { customImage = decodeURIComponent(rawImage); } catch { customImage = rawImage; }
+    }
   const productName = searchParams.get('productName') ? decodeURIComponent(searchParams.get('productName')!) : null;
 
   const rawSlide = Number(searchParams.get('slide') || 1);
