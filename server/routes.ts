@@ -7,7 +7,9 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-const uploadsDir = path.resolve(process.cwd(), "client", "public", "uploads", "products");
+const uploadsDir = process.env.NODE_ENV === "production"
+    ? path.resolve(process.cwd(), "dist", "public", "uploads", "products")
+    : path.resolve(process.cwd(), "client", "public", "uploads", "products");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const upload = multer({
