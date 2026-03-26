@@ -5,7 +5,7 @@ import ZoomableImage from '@/components/ZoomableImage';
 
 const TOTAL_SLIDES = 90;
 
-const slides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
+const catalogSlides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
   const num = String(i + 1).padStart(2, '0');
   return `/catalog/slide-${num}.png`;
 });
@@ -29,15 +29,19 @@ const isFullscreen = () => !!(
 const CatalogPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('from') || '/products';
+
+  const customImage = searchParams.get('image') ? decodeURIComponent(searchParams.get('image')!) : null;
+  const productName = searchParams.get('productName') ? decodeURIComponent(searchParams.get('productName')!) : null;
+
   const rawSlide = Number(searchParams.get('slide') || 1);
   const initialSlide = Number.isFinite(rawSlide) ? Math.max(0, Math.min(TOTAL_SLIDES - 1, rawSlide - 1)) : 0;
-  const returnTo = searchParams.get('from') || '/products';
+
   const [current, setCurrent] = useState(initialSlide);
   const [exiting, setExiting] = useState(false);
   const [fsActive, setFsActive] = useState(false);
   const thumbsRef = useRef<HTMLDivElement>(null);
 
-  // Request fullscreen on open
   useEffect(() => {
     requestFS();
     const onFsChange = () => setFsActive(isFullscreen());
@@ -63,6 +67,7 @@ const CatalogPage = () => {
   const goPrev = useCallback(() => goTo(current - 1), [current, goTo]);
 
   useEffect(() => {
+    if (customImage) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') goNext();
       if (e.key === 'ArrowLeft') goPrev();
@@ -70,14 +75,13 @@ const CatalogPage = () => {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [goNext, goPrev, navigate, returnTo]);
+  }, [goNext, goPrev, navigate, returnTo, customImage]);
 
-  // Keep active thumbnail in view
   useEffect(() => {
-    if (!thumbsRef.current) return;
+    if (customImage || !thumbsRef.current) return;
     const btn = thumbsRef.current.children[current] as HTMLElement;
     if (btn) btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
-  }, [current]);
+  }, [current, customImage]);
 
   const handleClose = () => {
     if (exiting) return;
@@ -85,6 +89,77 @@ const CatalogPage = () => {
     exitFS();
     setTimeout(() => navigate(returnTo), 50);
   };
+
+  if (customImage) {
+    return (
+      <div
+        data-testid="catalog-fullscreen"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 100,
+          background: '#000',
+          display: 'flex',
+          flexDirection: 'column',
+          userSelect: 'none',
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          height: 56,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.5))',
+          flexShrink: 0,
+          zIndex: 10,
+        }}>
+          <button
+            onClick={handleClose}
+            data-testid="button-close-catalog"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              height: 44, padding: '0 16px',
+              borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+              color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <ArrowLeft size={20} />
+            Back
+          </button>
+          {productName && (
+            <span style={{
+              color: '#fff', fontSize: 14, fontWeight: 600,
+              background: 'rgba(255,255,255,0.15)',
+              padding: '4px 14px', borderRadius: 999,
+              maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {productName}
+            </span>
+          )}
+          <button
+            onClick={toggleFS}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              height: 44, padding: '0 16px',
+              borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+              color: '#fff', fontSize: 14, border: 'none', cursor: 'pointer',
+            }}
+          >
+            {fsActive ? <Minimize size={20} /> : <Maximize size={20} />}
+          </button>
+        </div>
+
+        <div style={{ flex: 1, position: 'relative' }}>
+          <ZoomableImage
+            src={customImage}
+            alt={productName || 'Product catalogue image'}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -154,13 +229,12 @@ const CatalogPage = () => {
       <div style={{ flex: 1, position: 'relative' }}>
         <ZoomableImage
           key={current}
-          src={slides[current]}
+          src={catalogSlides[current]}
           alt={`Slide ${current + 1}`}
           onSwipeLeft={goNext}
           onSwipeRight={goPrev}
         />
 
-        {/* Prev button */}
         {current > 0 && (
           <button
             onClick={goPrev}
@@ -177,7 +251,6 @@ const CatalogPage = () => {
           </button>
         )}
 
-        {/* Next button */}
         {current < TOTAL_SLIDES - 1 && (
           <button
             onClick={goNext}
@@ -206,7 +279,7 @@ const CatalogPage = () => {
           ref={thumbsRef}
           style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}
         >
-          {slides.map((src, idx) => (
+          {catalogSlides.map((src, idx) => (
             <button
               key={idx}
               onClick={() => goTo(idx)}

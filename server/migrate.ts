@@ -38,9 +38,11 @@ export async function runMigrations() {
         "composition" text DEFAULT '',
         "description" text DEFAULT '',
         "catalog_slide" integer DEFAULT 0,
+        "catalog_image" text DEFAULT '',
         "is_seeded" boolean DEFAULT false
       );
     `);
+    await client.query(`ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "catalog_image" text DEFAULT '';`);
     await client.query(`
       CREATE TABLE IF NOT EXISTS "orders" (
         "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),

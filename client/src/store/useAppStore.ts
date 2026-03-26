@@ -26,6 +26,7 @@ export interface Product {
   composition: string | null;
   description: string | null;
   catalogSlide: number | null;
+  catalogImage: string | null;
   isSeeded: boolean | null;
 }
 
