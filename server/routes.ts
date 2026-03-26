@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { DEFAULT_PRODUCTS } from "./seedProducts";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
+import { Readable } from "stream";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -13,17 +13,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const cloudinaryStorage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "realmed-pharma/products",
-    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-    transformation: [{ quality: "auto", fetch_format: "auto" }],
-  } as any,
-});
-
 const upload = multer({
-  storage: cloudinaryStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
@@ -213,11 +204,17 @@ export async function registerRoutes(
     } catch (err: any) { console.error("DELETE /api/products error:", err.message); res.status(500).json({ message: err.message }); }
   });
 
-  app.post("/api/uploads/product-image", requireAuth, upload.single("image"), (req, res) => {
+  app.post("/api/uploads/product-image", requireAuth, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: "No image file uploaded" });
-      const url = (req.file as any).path;
-      res.json({ url });
+      const result = await new Promise<any>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "realmed-pharma/products", transformation: [{ quality: "auto", fetch_format: "auto" }] },
+          (error: any, result: any) => { if (error) reject(error); else resolve(result); }
+        );
+        Readable.from(req.file!.buffer).pipe(stream);
+      });
+      res.json({ url: result.secure_url });
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });
 
