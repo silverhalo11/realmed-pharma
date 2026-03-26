@@ -8,9 +8,9 @@ import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
+  api_key: process.env.CLOUDINARY_API_KEY || "",
+  api_secret: process.env.CLOUDINARY_API_SECRET || "",
 });
 
 const upload = multer({
@@ -207,6 +207,9 @@ export async function registerRoutes(
   app.post("/api/uploads/product-image", requireAuth, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: "No image file uploaded" });
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        return res.status(500).json({ message: "Cloudinary env vars missing: " + ["CLOUDINARY_CLOUD_NAME","CLOUDINARY_API_KEY","CLOUDINARY_API_SECRET"].filter(k => !process.env[k]).join(", ") });
+      }
       const result = await new Promise<any>((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "realmed-pharma/products", transformation: [{ quality: "auto", fetch_format: "auto" }] },
