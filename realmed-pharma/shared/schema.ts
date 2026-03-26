@@ -35,6 +35,7 @@ export const products = pgTable("products", {
   composition: text("composition").default(""),
   description: text("description").default(""),
   catalogSlide: integer("catalog_slide").default(0),
+  catalogImage: text("catalog_image").default(""),
   isSeeded: boolean("is_seeded").default(false),
 });
 
