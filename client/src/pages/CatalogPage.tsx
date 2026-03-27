@@ -148,6 +148,7 @@ const CatalogPage = () => {
           <ZoomableImage
             src={customImage}
             alt={productName || 'Product catalogue image'}
+            fitMode="cover"
           />
         </div>
       </div>
@@ -226,6 +227,7 @@ const CatalogPage = () => {
           alt={`Slide ${current + 1}`}
           onSwipeLeft={goNext}
           onSwipeRight={goPrev}
+          fitMode="cover"
         />
 
         {current > 0 && (
