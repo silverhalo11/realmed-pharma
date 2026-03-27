@@ -15,12 +15,36 @@ const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 const resolveImageUrl = (url?: string | null) => {
   if (!url) return '';
-  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith('data:') || /^https?:\/\//i.test(url)) return url;
   const path = url.startsWith('/') ? url : `/${url}`;
   return `${API_BASE}${path}`;
 };
 
-const ProductsPage = () => {
+
+  const compressImage = (file: File, maxDim = 1200, quality = 0.82): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+            else { width = Math.round((width * maxDim) / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = ev.target!.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+
+  const ProductsPage = () => {
   const navigate = useNavigate();
   const { products, categories, addProduct, updateProduct, deleteProduct, addCategory } = useAppStore();
   const [open, setOpen] = useState(false);
@@ -64,21 +88,12 @@ const ProductsPage = () => {
     if (!file) return;
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const res = await fetch(`${API_BASE}/api/uploads/product-image`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Upload failed');
-      const data = await res.json();
-      const normalizedUrl = resolveImageUrl(data.url);
-      setForm((f) => ({ ...f, catalogImage: normalizedUrl, catalogSlide: 0 }));
-      setImagePreview(normalizedUrl);
-      toast.success('Image uploaded successfully');
+      const dataUrl = await compressImage(file);
+      setForm((f) => ({ ...f, catalogImage: dataUrl, catalogSlide: 0 }));
+      setImagePreview(dataUrl);
+      toast.success('Image selected successfully');
     } catch {
-      toast.error('Failed to upload image');
+      toast.error('Failed to process image');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
