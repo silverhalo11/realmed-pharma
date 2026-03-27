@@ -17,15 +17,6 @@ const resolveImageUrl = (url?: string | null) => {
   return `${API_BASE}${path}`;
 };
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
-
-const resolveImageUrl = (url?: string | null) => {
-  if (!url) return '';
-  if (/^https?:\/\//i.test(url)) return url;
-  const path = url.startsWith('/') ? url : `/${url}`;
-  return `${API_BASE}${path}`;
-};
-
 const fsRequest = () => {
   const el = document.documentElement as any;
   (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen)?.call(el);
@@ -281,7 +272,7 @@ const DoctorDetailPage = () => {
                     <p className="font-medium text-card-foreground truncate">{p.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{p.composition || p.category}</p>
                   </div>
-                  {p.catalogSlide > 0 && (
+                  {(p.catalogSlide > 0 || !!p.catalogImage) && (
                     <button
                       onClick={() => openCatalogForProduct(p.id)}
                       className="p-2 rounded-lg hover:bg-primary/10"
