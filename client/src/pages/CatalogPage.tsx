@@ -40,7 +40,6 @@ const CatalogPage = () => {
   const [current, setCurrent] = useState(initialSlide);
   const [exiting, setExiting] = useState(false);
   const [fsActive, setFsActive] = useState(false);
-  const [showControls, setShowControls] = useState(true);
   const thumbsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,12 +83,6 @@ const CatalogPage = () => {
     if (btn) btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
   }, [current, customImage]);
 
-  useEffect(() => {
-    if (!showControls) return;
-    const timer = window.setTimeout(() => setShowControls(false), 2200);
-    return () => window.clearTimeout(timer);
-  }, [showControls, current, customImage]);
-
   const handleClose = () => {
     if (exiting) return;
     setExiting(true);
@@ -110,29 +103,26 @@ const CatalogPage = () => {
           flexDirection: 'column',
           userSelect: 'none',
         }}
-        onClick={() => setShowControls((s) => !s)}
       >
-        {showControls && (
         <div style={{
-          position: 'absolute',
-          top: 12,
-          left: 12,
-          right: 12,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          zIndex: 30,
-          pointerEvents: 'none',
+          padding: '0 16px',
+          height: 56,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.5))',
+          flexShrink: 0,
+          zIndex: 10,
         }}>
           <button
-            onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            onClick={handleClose}
             data-testid="button-close-catalog"
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              height: 40, padding: '0 14px',
-              borderRadius: 999, background: 'rgba(0,0,0,0.45)',
+              height: 44, padding: '0 16px',
+              borderRadius: 999, background: 'rgba(255,255,255,0.15)',
               color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
-              cursor: 'pointer', pointerEvents: 'auto',
+              cursor: 'pointer',
             }}
           >
             <ArrowLeft size={20} />
@@ -141,27 +131,25 @@ const CatalogPage = () => {
           {productName && (
             <span style={{
               color: '#fff', fontSize: 14, fontWeight: 600,
-              background: 'rgba(0,0,0,0.45)',
+              background: 'rgba(255,255,255,0.15)',
               padding: '4px 14px', borderRadius: 999,
               maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              pointerEvents: 'none',
             }}>
               {productName}
             </span>
           )}
           <button
-            onClick={(e) => { e.stopPropagation(); toggleFS(); }}
+            onClick={toggleFS}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              height: 40, width: 40, justifyContent: 'center',
-              borderRadius: 999, background: 'rgba(0,0,0,0.45)',
-              color: '#fff', fontSize: 14, border: 'none', cursor: 'pointer', pointerEvents: 'auto',
+              height: 44, padding: '0 16px',
+              borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+              color: '#fff', fontSize: 14, border: 'none', cursor: 'pointer',
             }}
           >
             {fsActive ? <Minimize size={20} /> : <Maximize size={20} />}
           </button>
         </div>
-        )}
 
         <div style={{ flex: 1, position: 'relative' }}>
           <ZoomableImage
@@ -185,29 +173,27 @@ const CatalogPage = () => {
         flexDirection: 'column',
         userSelect: 'none',
       }}
-      onClick={() => setShowControls((s) => !s)}
     >
-      {showControls && (
+      {/* Header */}
       <div style={{
-        position: 'absolute',
-        top: 12,
-        left: 12,
-        right: 12,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        zIndex: 30,
-        pointerEvents: 'none',
+        padding: '0 16px',
+        height: 56,
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.5))',
+        flexShrink: 0,
+        zIndex: 10,
       }}>
         <button
-          onClick={(e) => { e.stopPropagation(); handleClose(); }}
+          onClick={handleClose}
           data-testid="button-close-catalog"
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            height: 40, padding: '0 14px',
-            borderRadius: 999, background: 'rgba(0,0,0,0.45)',
+            height: 44, padding: '0 16px',
+            borderRadius: 999, background: 'rgba(255,255,255,0.15)',
             color: '#fff', fontSize: 15, fontWeight: 600, border: 'none',
-            cursor: 'pointer', pointerEvents: 'auto',
+            cursor: 'pointer',
           }}
         >
           <ArrowLeft size={20} />
@@ -218,28 +204,26 @@ const CatalogPage = () => {
           data-testid="text-slide-counter"
           style={{
             color: '#fff', fontSize: 15, fontWeight: 600,
-            background: 'rgba(0,0,0,0.45)',
+            background: 'rgba(255,255,255,0.15)',
             padding: '4px 14px', borderRadius: 999,
-            pointerEvents: 'none',
           }}
         >
           {current + 1} / {TOTAL_SLIDES}
         </span>
 
         <button
-          onClick={(e) => { e.stopPropagation(); toggleFS(); }}
+          onClick={toggleFS}
           title={fsActive ? 'Exit fullscreen' : 'Enter fullscreen'}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            height: 40, width: 40,
-            borderRadius: 999, background: 'rgba(0,0,0,0.45)',
-            color: '#fff', fontSize: 14, border: 'none', cursor: 'pointer', pointerEvents: 'auto',
+            display: 'flex', alignItems: 'center', gap: 6,
+            height: 44, padding: '0 16px',
+            borderRadius: 999, background: 'rgba(255,255,255,0.15)',
+            color: '#fff', fontSize: 14, border: 'none', cursor: 'pointer',
           }}
         >
           {fsActive ? <Minimize size={20} /> : <Maximize size={20} />}
         </button>
       </div>
-      )}
 
       {/* Slide area */}
       <div style={{ flex: 1, position: 'relative' }}>
@@ -253,7 +237,7 @@ const CatalogPage = () => {
 
         {current > 0 && (
           <button
-            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            onClick={goPrev}
             data-testid="button-prev-slide"
             style={{
               position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
@@ -269,7 +253,7 @@ const CatalogPage = () => {
 
         {current < TOTAL_SLIDES - 1 && (
           <button
-            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            onClick={goNext}
             data-testid="button-next-slide"
             style={{
               position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
