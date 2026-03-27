@@ -6,14 +6,21 @@ interface Props {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   hint?: boolean;
+  fitMode?: 'contain' | 'cover';
 }
 
 /**
- * ZoomableImage — renders at natural image resolution (never upscales),
- * supports pinch-to-zoom, double-tap, pan, swipe navigation, and
- * auto-resets on orientation change.
+ * ZoomableImage — supports pinch-to-zoom, double-tap, pan, swipe navigation,
+ * and auto-resets on orientation change.
  */
-const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }: Props) => {
+const ZoomableImage = ({
+  src,
+  alt = '',
+  onSwipeLeft,
+  onSwipeRight,
+  hint = true,
+  fitMode = 'contain',
+}: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -197,17 +204,15 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
         }}
         style={{
           /*
-           * KEY FIX: Never force the image larger than its natural size.
-           * max-width/max-height scale it DOWN if the screen is smaller,
-           * but if the screen is larger the image stays at natural resolution.
-           * This preserves full image quality — no CSS upscaling.
+           * contain mode preserves full image inside viewport.
+           * cover mode fills viewport and may crop edges.
            */
-          maxWidth: '100%',
-          maxHeight: '100%',
-          width: 'auto',
-          height: 'auto',
+          maxWidth: fitMode === 'cover' ? 'none' : '100%',
+          maxHeight: fitMode === 'cover' ? 'none' : '100%',
+          width: fitMode === 'cover' ? '100%' : 'auto',
+          height: fitMode === 'cover' ? '100%' : 'auto',
           display: 'block',
-          objectFit: 'contain',
+          objectFit: fitMode,
           transformOrigin: 'center center',
           imageRendering: 'high-quality' as any,
           userSelect: 'none',
