@@ -20,11 +20,18 @@ const fsExit = () => {
 
 const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { product: Product; src: string }[]; initialIndex: number; onClose: () => void }) => {
   const [current, setCurrent] = useState(initialIndex);
+  const [showControls, setShowControls] = useState(true);
 
   useEffect(() => {
     fsRequest();
     return () => { fsExit(); };
   }, []);
+
+  useEffect(() => {
+    if (!showControls) return;
+    const timer = window.setTimeout(() => setShowControls(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [showControls, current]);
 
   const goTo = (idx: number) => {
     if (idx >= 0 && idx < slides.length) setCurrent(idx);
@@ -33,25 +40,61 @@ const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { 
   const handleClose = () => { fsExit(); onClose(); };
 
   return (
-    <div data-testid="prescribed-catalog-viewer" style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#000', display: 'flex', flexDirection: 'column', userSelect: 'none' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, background: 'linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0.5))', flexShrink: 0, zIndex: 10 }}>
-        <button
-          onClick={handleClose}
-          data-testid="button-close-prescribed-catalog"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 44, padding: '0 16px', borderRadius: 999, background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 15, fontWeight: 600, border: 'none', cursor: 'pointer' }}
-        >
-          <ArrowLeft size={20} />
-          Back
-        </button>
-        <span data-testid="text-prescribed-slide-counter" style={{ color: '#fff', fontSize: 15, fontWeight: 600, background: 'rgba(255,255,255,0.15)', padding: '4px 14px', borderRadius: 999 }}>
-          {current + 1} / {slides.length}
-        </span>
-        <div style={{ width: 88 }} />
-      </div>
+    <div
+      data-testid="prescribed-catalog-viewer"
+      onClick={() => setShowControls((s) => !s)}
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#000', display: 'flex', flexDirection: 'column', userSelect: 'none' }}
+    >
+      {showControls && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 30, pointerEvents: 'none' }}>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleClose(); }}
+            data-testid="button-close-prescribed-catalog"
+            style={{
+              position: 'absolute',
+              left: 12,
+              top: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              height: 40,
+              padding: '0 14px',
+              borderRadius: 999,
+              background: 'rgba(0,0,0,0.45)',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+            }}
+          >
+            <ArrowLeft size={18} />
+            Back
+          </button>
+          <span
+            data-testid="text-prescribed-slide-counter"
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: 12,
+              transform: 'translateX(-50%)',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 600,
+              background: 'rgba(0,0,0,0.45)',
+              padding: '6px 14px',
+              borderRadius: 999,
+              pointerEvents: 'none',
+            }}
+          >
+            {current + 1} / {slides.length}
+          </span>
+        </div>
+      )}
 
       {/* Product name label */}
-      <div style={{ position: 'absolute', top: 56, left: 0, right: 0, zIndex: 20, display: 'flex', justifyContent: 'center', padding: '8px 0', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: showControls ? 58 : 12, left: 0, right: 0, zIndex: 20, display: 'flex', justifyContent: 'center', padding: '8px 0', pointerEvents: 'none' }}>
         <span data-testid="text-prescribed-product-name" style={{ background: 'rgba(var(--primary), 0.9)', color: '#fff', fontSize: 13, fontWeight: 700, padding: '4px 14px', borderRadius: 999 }}>
           {slides[current]?.product.name}
         </span>
@@ -68,7 +111,7 @@ const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { 
         />
         {current > 0 && (
           <button
-            onClick={() => goTo(current - 1)}
+            onClick={(e) => { e.stopPropagation(); goTo(current - 1); }}
             data-testid="button-prev-prescribed-slide"
             style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}
           >
@@ -77,7 +120,7 @@ const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { 
         )}
         {current < slides.length - 1 && (
           <button
-            onClick={() => goTo(current + 1)}
+            onClick={(e) => { e.stopPropagation(); goTo(current + 1); }}
             data-testid="button-next-prescribed-slide"
             style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 52, height: 52, borderRadius: '50%', background: 'rgba(0,0,0,0.45)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}
           >
