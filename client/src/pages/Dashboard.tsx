@@ -70,7 +70,7 @@ const Dashboard = () => {
             className="text-xs text-primary font-medium"
             data-testid="link-view-full-catalog"
           >
-            View All 90 Slides
+            {90 + products.filter((p) => p.catalogImage).length} Slides
           </button>
         </div>
         <CatalogSlideshow onSlideClick={(slide) => navigate(`/catalog?slide=${slide}&from=/`)} />
