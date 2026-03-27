@@ -35,15 +35,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
-const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
-
-const resolveImageUrl = (url?: string | null) => {
-  if (!url) return '';
-  if (/^https?:\/\//i.test(url)) return url;
-  const path = url.startsWith('/') ? url : `/${url}`;
-  return `${API_BASE}${path}`;
-};
-
 const getSlideUrl = (slide: number | null | undefined) => {
   if (!slide) return null;
   return `/catalog/slide-${String(slide).padStart(2, '0')}.png`;
@@ -95,7 +86,6 @@ const CatalogModal = ({
           alt={slides[current]?.name}
           onSwipeLeft={() => current < slides.length - 1 && setCurrent((c) => c + 1)}
           onSwipeRight={() => current > 0 && setCurrent((c) => c - 1)}
-          fitMode="contain"
         />
         {current > 0 && (
           <button
@@ -143,9 +133,7 @@ const CallDetailPage = () => {
   const slidesWithUrls = useMemo(() => {
     return callProducts
       .map((cp) => {
-        const url = cp.product?.catalogImage
-          ? resolveImageUrl(cp.product.catalogImage)
-          : getSlideUrl(cp.product?.catalogSlide);
+        const url = getSlideUrl(cp.product?.catalogSlide);
         if (!url) return null;
         return { name: cp.product?.name || '', url };
       })
@@ -422,3 +410,4 @@ const CallDetailPage = () => {
 };
 
 export default CallDetailPage;
+
