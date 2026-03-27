@@ -4,6 +4,15 @@ import { Stethoscope, Package, ShoppingCart, MapPin, Bell, BookOpen, ChevronLeft
 import { useAppStore } from '@/store/useAppStore';
 import logoPath from '@assets/realmed_bird_logo_white.png';
 
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
+const resolveImageUrl = (url?: string | null) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${API_BASE}${path}`;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { doctors, products, orders, visits, reminders, calls, userName } = useAppStore();
@@ -20,6 +29,15 @@ const Dashboard = () => {
     { label: 'Visits', count: todayVisits.length, icon: MapPin, path: '/visits', color: 'bg-warning' },
     { label: 'Reminders', count: activeReminders.length, icon: Bell, path: '/reminders', color: 'bg-destructive' },
   ];
+
+  const uploadedCatalogImages = products
+    .filter((p) => !!p.catalogImage)
+    .map((p) => ({
+      src: resolveImageUrl(p.catalogImage),
+      productName: p.name,
+    }));
+
+  const totalCatalogSlides = TOTAL_SLIDES + uploadedCatalogImages.length;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -70,10 +88,19 @@ const Dashboard = () => {
             className="text-xs text-primary font-medium"
             data-testid="link-view-full-catalog"
           >
-            {90 + products.filter((p) => p.catalogImage).length} Slides
+            {totalCatalogSlides} Slides
           </button>
         </div>
-        <CatalogSlideshow onSlideClick={(slide) => navigate(`/catalog?slide=${slide}&from=/`)} />
+        <CatalogSlideshow
+          uploadedImages={uploadedCatalogImages}
+          onSlideClick={(slide) => {
+            if (slide.image) {
+              navigate(`/catalog?image=${encodeURIComponent(slide.image)}&productName=${encodeURIComponent(slide.productName || '')}&from=/`);
+              return;
+            }
+            navigate(`/catalog?slide=${slide.slide || 1}&from=/`);
+          }}
+        />
       </div>
 
       {activeReminders.length > 0 && (
@@ -103,12 +130,31 @@ const catalogSlides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
   return `/catalog/slide-${num}.png`;
 });
 
-const CatalogSlideshow = ({ onSlideClick }: { onSlideClick: (slide: number) => void }) => {
+type CatalogSlideItem = {
+  src: string;
+  slide?: number;
+  image?: string;
+  productName?: string;
+};
+
+const CatalogSlideshow = ({
+  onSlideClick,
+  uploadedImages,
+}: {
+  onSlideClick: (slide: CatalogSlideItem) => void;
+  uploadedImages: { src: string; productName: string }[];
+}) => {
+  const allSlides: CatalogSlideItem[] = [
+    ...catalogSlides.map((src, index) => ({ src, slide: index + 1 })),
+    ...uploadedImages.map((img) => ({ src: img.src, image: img.src, productName: img.productName })),
+  ];
+
+  const totalSlides = allSlides.length;
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  const goNext = useCallback(() => setCurrent((c) => (c + 1) % TOTAL_SLIDES), []);
-  const goPrev = useCallback(() => setCurrent((c) => (c - 1 + TOTAL_SLIDES) % TOTAL_SLIDES), []);
+  const goNext = useCallback(() => setCurrent((c) => (c + 1) % totalSlides), [totalSlides]);
+  const goPrev = useCallback(() => setCurrent((c) => (c - 1 + totalSlides) % totalSlides), [totalSlides]);
 
   useEffect(() => {
     if (paused) return;
@@ -124,11 +170,11 @@ const CatalogSlideshow = ({ onSlideClick }: { onSlideClick: (slide: number) => v
     >
       <div
         className="cursor-pointer"
-        onClick={() => onSlideClick(current + 1)}
+        onClick={() => onSlideClick(allSlides[current])}
         data-testid="catalog-slideshow"
       >
         <img
-          src={catalogSlides[current]}
+          src={allSlides[current]?.src}
           alt={`Catalog Slide ${current + 1}`}
           className="w-full aspect-[16/10] object-contain bg-white"
           draggable={false}
@@ -150,7 +196,7 @@ const CatalogSlideshow = ({ onSlideClick }: { onSlideClick: (slide: number) => v
         <ChevronRight className="w-4 h-4" />
       </button>
       <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full" data-testid="text-slideshow-counter">
-        {current + 1} / {TOTAL_SLIDES}
+        {current + 1} / {totalSlides}
       </div>
     </div>
   );
