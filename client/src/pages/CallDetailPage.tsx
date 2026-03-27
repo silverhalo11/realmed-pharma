@@ -313,7 +313,9 @@ const CallDetailPage = () => {
         </h2>
         <div className="space-y-3">
           {callProducts.map((cp) => {
-            const slideUrl = getSlideUrl(cp.product?.catalogSlide);
+            const slideUrl = cp.product?.catalogImage
+              ? resolveImageUrl(cp.product.catalogImage)
+              : getSlideUrl(cp.product?.catalogSlide);
             return (
               <div key={cp.productId} className="rounded-xl bg-card border overflow-hidden shadow-sm">
                 <div className="flex items-center gap-3 p-3">
