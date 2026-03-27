@@ -351,8 +351,7 @@ const CallDetailPage = () => {
                 </div>
 
                 {/* Reaction buttons */}
-                {!isCompleted && (
-                  <div className="flex border-t">
+                <div className="flex border-t">
                     <button
                       onClick={() => updateProductStatus(cp.productId, cp.status === 'liked' ? 'pending' : 'liked')}
                       className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
@@ -371,7 +370,6 @@ const CallDetailPage = () => {
                       <ThumbsDown className="w-4 h-4" /> Remove
                     </button>
                   </div>
-                )}
               </div>
             );
           })}
