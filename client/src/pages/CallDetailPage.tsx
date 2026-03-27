@@ -111,7 +111,7 @@ const CatalogModal = ({
 const CallDetailPage = () => {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
-  const { doctors, products, calls, updateCall, deleteCall } = useAppStore();
+  const { doctors, products, calls, updateCall, deleteCall, updateDoctor } = useAppStore();
 
   const call = calls.find((c) => c.id === callId);
   const doctor = doctors.find((d) => d.id === call?.doctorId);
@@ -156,6 +156,20 @@ const CallDetailPage = () => {
       p.productId === productId ? { ...p, status } : p
     );
     await updateCall({ ...call, products: newProducts || [] });
+
+    // Sync prescribed products on doctor
+    if (doctor) {
+      const prods = doctor.prescribedProducts || [];
+      let newPresc: string[];
+      if (status === 'liked') {
+        newPresc = prods.includes(productId) ? prods : [...prods, productId];
+      } else {
+        newPresc = prods.filter((p) => p !== productId);
+      }
+      if (newPresc.length !== prods.length || newPresc.some((p, i) => p !== prods[i])) {
+        await updateDoctor({ ...doctor, prescribedProducts: newPresc });
+      }
+    }
   };
 
   const saveNotes = async () => {
@@ -398,3 +412,4 @@ const CallDetailPage = () => {
 };
 
 export default CallDetailPage;
+
