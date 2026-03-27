@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
@@ -7,7 +7,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-const uploadsDir = path.resolve(process.cwd(), "client", "public", "uploads", "products");
+const uploadsDir = path.resolve(process.cwd(), "uploads", "products");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const upload = multer({
@@ -43,6 +43,7 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.use("/uploads/products", express.static(uploadsDir));
 
   app.post("/api/auth/register", async (req, res) => {
     try {
