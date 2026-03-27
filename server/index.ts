@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -55,6 +56,15 @@ export function log(message: string, source = "express") {
     const app = express();
     app.set("trust proxy", 1);
     const httpServer = createServer(app);
+
+    app.use(cors({
+      origin: [
+        'capacitor://localhost',
+        'http://localhost',
+        /\.railway\.app$/,
+      ],
+      credentials: true,
+    }));
 
     app.use(
       express.json({
@@ -151,3 +161,4 @@ export function log(message: string, source = "express") {
     process.exit(1);
   }
 })();
+
