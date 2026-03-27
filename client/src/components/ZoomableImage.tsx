@@ -6,14 +6,21 @@ interface Props {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   hint?: boolean;
+  fitMode?: 'contain' | 'cover';
 }
 
 /**
- * ZoomableImage — renders at natural image resolution (never upscales),
- * supports pinch-to-zoom, double-tap, pan, swipe navigation, and
- * auto-resets on orientation change.
+ * ZoomableImage — supports pinch-to-zoom, double-tap, pan, swipe navigation,
+ * and auto-resets on orientation change.
  */
-const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }: Props) => {
+const ZoomableImage = ({
+  src,
+  alt = '',
+  onSwipeLeft,
+  onSwipeRight,
+  hint = true,
+  fitMode = 'contain',
+}: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -22,6 +29,8 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
   const stateRef = useRef({ scale: 1, tx: 0, ty: 0 });
   // Base rendered size of the image before any CSS transform (measured after load/resize)
   const baseSizeRef = useRef({ w: 0, h: 0 });
+  // Natural source image size (for sharpness-aware zoom limits)
+  const naturalSizeRef = useRef({ w: 0, h: 0 });
 
   const lastTap = useRef(0);
   const pinchDist = useRef<number | null>(null);
@@ -65,6 +74,16 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
 
   const resetZoom = (animated = false) => applyTransform(1, 0, 0, animated);
 
+  const getMaxSharpScale = () => {
+    const bw = baseSizeRef.current.w;
+    const bh = baseSizeRef.current.h;
+    const nw = naturalSizeRef.current.w;
+    const nh = naturalSizeRef.current.h;
+    if (!bw || !bh || !nw || !nh) return 8;
+    const maxScaleByPixels = Math.min(nw / bw, nh / bh);
+    return Math.max(1, Math.min(8, maxScaleByPixels));
+  };
+
   const getTouchDist = (t: TouchList) => {
     const dx = t[0].clientX - t[1].clientX;
     const dy = t[0].clientY - t[1].clientY;
@@ -75,6 +94,7 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
   useEffect(() => {
     stateRef.current = { scale: 1, tx: 0, ty: 0 };
     baseSizeRef.current = { w: 0, h: 0 };
+    naturalSizeRef.current = { w: 0, h: 0 };
     if (imgRef.current) {
       imgRef.current.style.transition = 'none';
       imgRef.current.style.transform = 'none';
@@ -112,7 +132,8 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
         const now = Date.now();
         if (now - lastTap.current < 280) {
           e.preventDefault();
-          stateRef.current.scale > 1 ? resetZoom(true) : applyTransform(2.5, 0, 0, true);
+          const targetScale = Math.min(2.5, getMaxSharpScale());
+          stateRef.current.scale > 1 ? resetZoom(true) : applyTransform(targetScale, 0, 0, true);
           lastTap.current = 0;
         } else {
           lastTap.current = now;
@@ -128,7 +149,8 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
         e.preventDefault();
         if (pinchDist.current === null) return;
         const nd = getTouchDist(e.touches);
-        const newScale = Math.max(1, Math.min(8, stateRef.current.scale * (nd / pinchDist.current)));
+        const maxSharpScale = getMaxSharpScale();
+        const newScale = Math.max(1, Math.min(maxSharpScale, stateRef.current.scale * (nd / pinchDist.current)));
         pinchDist.current = nd;
         applyTransform(newScale, stateRef.current.tx, stateRef.current.ty);
       } else if (e.touches.length === 1) {
@@ -192,24 +214,26 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
         alt={alt}
         draggable={false}
         onLoad={() => {
+          naturalSizeRef.current = {
+            w: imgRef.current?.naturalWidth || 0,
+            h: imgRef.current?.naturalHeight || 0,
+          };
           measureBase();
           resetZoom(false);
         }}
         style={{
           /*
-           * KEY FIX: Never force the image larger than its natural size.
-           * max-width/max-height scale it DOWN if the screen is smaller,
-           * but if the screen is larger the image stays at natural resolution.
-           * This preserves full image quality — no CSS upscaling.
+           * contain mode preserves full image inside viewport.
+           * cover mode fills viewport and may crop edges.
            */
-          maxWidth: '100%',
-          maxHeight: '100%',
-          width: 'auto',
-          height: 'auto',
+          maxWidth: fitMode === 'cover' ? 'none' : '100%',
+          maxHeight: fitMode === 'cover' ? 'none' : '100%',
+          width: fitMode === 'cover' ? '100%' : 'auto',
+          height: fitMode === 'cover' ? '100%' : 'auto',
           display: 'block',
-          objectFit: 'contain',
+          objectFit: fitMode,
           transformOrigin: 'center center',
-          imageRendering: 'high-quality' as any,
+          imageRendering: 'auto',
           userSelect: 'none',
           pointerEvents: 'none',
         }}
