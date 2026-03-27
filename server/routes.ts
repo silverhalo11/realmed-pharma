@@ -4,17 +4,20 @@ import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { DEFAULT_PRODUCTS } from "./seedProducts";
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import { Readable } from "stream";
+import path from "path";
+import fs from "fs";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
-  api_key: process.env.CLOUDINARY_API_KEY || "",
-  api_secret: process.env.CLOUDINARY_API_SECRET || "",
-});
+const uploadsDir = path.resolve(process.cwd(), "client", "public", "uploads", "products");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || ".jpg";
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
@@ -204,20 +207,11 @@ export async function registerRoutes(
     } catch (err: any) { console.error("DELETE /api/products error:", err.message); res.status(500).json({ message: err.message }); }
   });
 
-  app.post("/api/uploads/product-image", requireAuth, upload.single("image"), async (req, res) => {
+  app.post("/api/uploads/product-image", requireAuth, upload.single("image"), (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: "No image file uploaded" });
-      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-        return res.status(500).json({ message: "Cloudinary env vars missing: " + ["CLOUDINARY_CLOUD_NAME","CLOUDINARY_API_KEY","CLOUDINARY_API_SECRET"].filter(k => !process.env[k]).join(", ") });
-      }
-      const result = await new Promise<any>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "realmed-pharma/products", transformation: [{ quality: "auto", fetch_format: "auto" }] },
-          (error: any, result: any) => { if (error) reject(error); else resolve(result); }
-        );
-        Readable.from(req.file!.buffer).pipe(stream);
-      });
-      res.json({ url: result.secure_url });
+      const url = `/uploads/products/${req.file.filename}`;
+      res.json({ url });
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });
 
