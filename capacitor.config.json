@@ -3,6 +3,7 @@
   "appName": "RealMed Pharma",
   "webDir": "dist/public",
   "server": {
-    "androidScheme": "https"
+    "url": "https://respectful-dedication-production-15cb.up.railway.app",
+    "cleartext": false
   }
 }
