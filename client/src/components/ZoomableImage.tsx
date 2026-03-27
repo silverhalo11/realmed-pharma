@@ -187,30 +187,33 @@ const ZoomableImage = ({ src, alt = '', onSwipeLeft, onSwipeRight, hint = true }
       }}
     >
       <img
-          ref={imgRef}
-          src={src}
-          alt={alt}
-          draggable={false}
-          onLoad={() => {
-            measureBase();
-            resetZoom(false);
-          }}
-          onError={(e) => {
-            const img = e.currentTarget;
-            img.style.display = 'block';
-          }}
-          style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            width: 'auto',
-            height: 'auto',
-            display: 'block',
-            objectFit: 'contain',
-            transformOrigin: 'center center',
-            userSelect: 'none',
-            pointerEvents: 'none',
-          }}
-        />
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        draggable={false}
+        onLoad={() => {
+          measureBase();
+          resetZoom(false);
+        }}
+        style={{
+          /*
+           * KEY FIX: Never force the image larger than its natural size.
+           * max-width/max-height scale it DOWN if the screen is smaller,
+           * but if the screen is larger the image stays at natural resolution.
+           * This preserves full image quality — no CSS upscaling.
+           */
+          maxWidth: '100%',
+          maxHeight: '100%',
+          width: 'auto',
+          height: 'auto',
+          display: 'block',
+          objectFit: 'contain',
+          transformOrigin: 'center center',
+          imageRendering: 'high-quality' as any,
+          userSelect: 'none',
+          pointerEvents: 'none',
+        }}
+      />
       {hint && (
         <p
           style={{
