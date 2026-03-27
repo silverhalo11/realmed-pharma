@@ -8,6 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
+const resolveImageUrl = (url?: string | null) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${API_BASE}${path}`;
+};
 
 const fsRequest = () => {
   const el = document.documentElement as any;
@@ -65,6 +73,7 @@ const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { 
           alt={slides[current]?.product.name}
           onSwipeLeft={() => goTo(current + 1)}
           onSwipeRight={() => goTo(current - 1)}
+          fitMode="contain"
         />
         {current > 0 && (
           <button
@@ -86,21 +95,6 @@ const PrescribedCatalogViewer = ({ slides, initialIndex, onClose }: { slides: { 
         )}
       </div>
 
-      {/* Thumbnail strip */}
-      <div style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', padding: '8px 12px 10px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-          {slides.map((s, idx) => (
-            <button
-              key={idx}
-              onClick={() => goTo(idx)}
-              style={{ flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: 'none', cursor: 'pointer', outline: idx === current ? '2.5px solid #fff' : 'none', opacity: idx === current ? 1 : 0.4, padding: 0 }}
-            >
-              <img src={s.src} alt={s.product.name} style={{ width: 64, height: 40, objectFit: 'cover', display: 'block' }} loading="lazy" />
-              <p style={{ fontSize: 9, color: '#fff', textAlign: 'center', padding: '1px 4px', background: 'rgba(0,0,0,0.6)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 64 }}>{s.product.name}</p>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
@@ -133,11 +127,15 @@ const DoctorDetailPage = () => {
     .filter((p): p is Product => !!p);
 
   const prescribedSlides = prescribed
-    .filter((p) => p.catalogSlide > 0)
     .map((p) => ({
       product: p,
-      src: `/catalog/slide-${String(p.catalogSlide).padStart(2, '0')}.png`,
-    }));
+      src: p.catalogImage
+        ? resolveImageUrl(p.catalogImage)
+        : (p.catalogSlide && p.catalogSlide > 0
+          ? `/catalog/slide-${String(p.catalogSlide).padStart(2, '0')}.png`
+          : ''),
+    }))
+    .filter((s) => !!s.src);
 
   const filteredProducts = search.trim()
     ? products.filter((p) =>
