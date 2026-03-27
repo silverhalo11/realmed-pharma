@@ -1,0 +1,8 @@
+{
+  "appId": "com.realmedpharma.app",
+  "appName": "RealMed Pharma",
+  "webDir": "dist/public",
+  "server": {
+    "androidScheme": "https"
+  }
+}
