@@ -11,6 +11,14 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 const emptyForm = { name: '', category: '', composition: '', description: '', catalogSlide: 0, catalogImage: '' };
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
+const resolveImageUrl = (url?: string | null) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${API_BASE}${path}`;
+};
 
 const ProductsPage = () => {
   const navigate = useNavigate();
@@ -47,7 +55,7 @@ const ProductsPage = () => {
       catalogSlide: p.catalogSlide || 0,
       catalogImage: p.catalogImage || '',
     });
-    setImagePreview(p.catalogImage || '');
+    setImagePreview(resolveImageUrl(p.catalogImage));
     setOpen(true);
   };
 
@@ -58,15 +66,16 @@ const ProductsPage = () => {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const res = await fetch('/api/uploads/product-image', {
+      const res = await fetch(`${API_BASE}/api/uploads/product-image`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      setForm((f) => ({ ...f, catalogImage: data.url, catalogSlide: 0 }));
-      setImagePreview(data.url);
+      const normalizedUrl = resolveImageUrl(data.url);
+      setForm((f) => ({ ...f, catalogImage: normalizedUrl, catalogSlide: 0 }));
+      setImagePreview(normalizedUrl);
       toast.success('Image uploaded successfully');
     } catch {
       toast.error('Failed to upload image');
@@ -103,7 +112,8 @@ const ProductsPage = () => {
 
   const openCatalog = (p: Product) => {
     if (p.catalogImage) {
-      navigate(`/catalog?image=${encodeURIComponent(p.catalogImage)}&productName=${encodeURIComponent(p.name)}&from=/products`);
+      const imageUrl = resolveImageUrl(p.catalogImage);
+      navigate(`/catalog?image=${encodeURIComponent(imageUrl)}&productName=${encodeURIComponent(p.name)}&from=/products`);
     } else if (p.catalogSlide && p.catalogSlide > 0) {
       navigate(`/catalog?slide=${p.catalogSlide}&from=/products`);
     }
@@ -160,7 +170,7 @@ const ProductsPage = () => {
                   className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer border"
                   onClick={() => openCatalog(p)}
                 >
-                  <img src={p.catalogImage} alt={p.name} className="w-full h-full object-cover" />
+                  <img src={resolveImageUrl(p.catalogImage)} alt={p.name} className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">

@@ -2,8 +2,17 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ZoomableImage from '@/components/ZoomableImage';
+import { useAppStore } from '@/store/useAppStore';
 
 const TOTAL_SLIDES = 90;
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
+const resolveImageUrl = (url?: string | null) => {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${API_BASE}${path}`;
+};
 
 const catalogSlides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
   const num = String(i + 1).padStart(2, '0');
@@ -28,14 +37,29 @@ const isFullscreen = () => !!(
 
 const CatalogPage = () => {
   const navigate = useNavigate();
+  const { products } = useAppStore();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('from') || '/products';
 
   const customImage = searchParams.get('image') ? decodeURIComponent(searchParams.get('image')!) : null;
   const productName = searchParams.get('productName') ? decodeURIComponent(searchParams.get('productName')!) : null;
 
+  const uploadedSlides = products
+    .filter((p) => !!p.catalogImage)
+    .map((p) => ({
+      src: resolveImageUrl(p.catalogImage),
+      productName: p.name,
+      uploaded: true,
+    }));
+
+  const allSlides = [
+    ...catalogSlides.map((src) => ({ src, uploaded: false, productName: '' })),
+    ...uploadedSlides,
+  ];
+
+  const totalSlides = allSlides.length;
   const rawSlide = Number(searchParams.get('slide') || 1);
-  const initialSlide = Number.isFinite(rawSlide) ? Math.max(0, Math.min(TOTAL_SLIDES - 1, rawSlide - 1)) : 0;
+  const initialSlide = Number.isFinite(rawSlide) ? Math.max(0, Math.min(totalSlides - 1, rawSlide - 1)) : 0;
 
   const [current, setCurrent] = useState(initialSlide);
   const [exiting, setExiting] = useState(false);
@@ -59,9 +83,9 @@ const CatalogPage = () => {
   };
 
   const goTo = useCallback((idx: number) => {
-    if (idx < 0 || idx >= TOTAL_SLIDES) return;
+    if (idx < 0 || idx >= totalSlides) return;
     setCurrent(idx);
-  }, []);
+  }, [totalSlides]);
 
   const goNext = useCallback(() => goTo(current + 1), [current, goTo]);
   const goPrev = useCallback(() => goTo(current - 1), [current, goTo]);
@@ -208,7 +232,7 @@ const CatalogPage = () => {
             padding: '4px 14px', borderRadius: 999,
           }}
         >
-          {current + 1} / {TOTAL_SLIDES}
+          {current + 1} / {totalSlides}
         </span>
 
         <button
@@ -229,7 +253,7 @@ const CatalogPage = () => {
       <div style={{ flex: 1, position: 'relative' }}>
         <ZoomableImage
           key={current}
-          src={catalogSlides[current]}
+          src={allSlides[current]?.src}
           alt={`Slide ${current + 1}`}
           onSwipeLeft={goNext}
           onSwipeRight={goPrev}
@@ -251,7 +275,7 @@ const CatalogPage = () => {
           </button>
         )}
 
-        {current < TOTAL_SLIDES - 1 && (
+        {current < totalSlides - 1 && (
           <button
             onClick={goNext}
             data-testid="button-next-slide"
@@ -279,7 +303,7 @@ const CatalogPage = () => {
           ref={thumbsRef}
           style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}
         >
-          {catalogSlides.map((src, idx) => (
+          {allSlides.map((slide, idx) => (
             <button
               key={idx}
               onClick={() => goTo(idx)}
@@ -300,7 +324,7 @@ const CatalogPage = () => {
             >
               {Math.abs(idx - current) <= 10 && (
                 <img
-                  src={src}
+                  src={slide.src}
                   alt={`Thumb ${idx + 1}`}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   loading="lazy"
