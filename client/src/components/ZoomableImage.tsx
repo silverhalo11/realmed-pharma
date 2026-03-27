@@ -199,7 +199,7 @@ const ZoomableImage = ({
       ref={containerRef}
       style={{
         position: 'absolute',
-        inset: 0,
+        top: 0, right: 0, bottom: 0, left: 0,
         overflow: 'hidden',
         touchAction: 'none',
         background: '#000',
@@ -226,12 +226,11 @@ const ZoomableImage = ({
            * contain mode preserves full image inside viewport.
            * cover mode fills viewport and may crop edges.
            */
-          maxWidth: fitMode === 'cover' ? 'none' : '100%',
-          maxHeight: fitMode === 'cover' ? 'none' : '100%',
-          width: fitMode === 'cover' ? '100%' : 'auto',
-          height: fitMode === 'cover' ? '100%' : 'auto',
+          ...(fitMode === 'cover'
+            ? { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' as const }
+            : { maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' as const }
+          ),
           display: 'block',
-          objectFit: fitMode,
           transformOrigin: 'center center',
           imageRendering: 'auto',
           userSelect: 'none',
