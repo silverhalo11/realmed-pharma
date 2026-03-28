@@ -27,6 +27,7 @@ const CallsPage = () => {
   const { doctors, calls, products, deleteCall } = useAppStore();
   const [showDoctorPicker, setShowDoctorPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
+    const [pickerCity, setPickerCity] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
     const [cityFilter, setCityFilter] = useState('');
     const [callSearch, setCallSearch] = useState('');
@@ -83,7 +84,7 @@ const CallsPage = () => {
       <PageHeader
         title="Calls"
         action={
-          <Button size="sm" onClick={() => { setPickerSearch(''); setShowDoctorPicker(true); }}>
+          <Button size="sm" onClick={() => { setPickerSearch(''); setPickerCity(''); setShowDoctorPicker(true); }}>
             <Plus className="w-4 h-4 mr-1" /> New Call
           </Button>
         }
@@ -173,45 +174,8 @@ const CallsPage = () => {
         </div>
       </div>
 
-      {/* Search + City Filter */}
-        <div className="px-4 pb-3 space-y-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by doctor, city, date…"
-              value={callSearch}
-              onChange={(e) => setCallSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          {callCities.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              <button
-                onClick={() => setCityFilter('')}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  !cityFilter ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
-                }`}
-              >
-                All
-              </button>
-              {callCities.map((city) => (
-                <button
-                  key={city}
-                  onClick={() => setCityFilter(cityFilter === city ? '' : city)}
-                  className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    cityFilter === city ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
-                  }`}
-                >
-                  <MapPin className="w-3 h-3" />
-                  {city}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Saved Calls List */}
-        {filteredCalls.length === 0 && sortedCalls.length === 0 ? (
+      {/* Saved Calls List */}
+        {sortedCalls.length === 0 ? (
         <div className="px-4 py-16 text-center">
           <Phone className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground font-medium">No calls yet</p>
@@ -219,7 +183,7 @@ const CallsPage = () => {
         </div>
       ) : (
         <div className="px-4 pb-6 space-y-3">
-          {filteredCalls.map((call) => {
+          {sortedCalls.map((call) => {
             const doctor = doctors.find((d) => d.id === call.doctorId);
             const callProducts = (call.products || []).map((cp) => ({
               ...cp,
