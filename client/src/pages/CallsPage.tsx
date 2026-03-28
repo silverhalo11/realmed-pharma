@@ -63,15 +63,25 @@ const CallsPage = () => {
       });
     }, [sortedCalls, doctors, cityFilter, callSearch]);
 
-  const pickerDoctors = useMemo(() => {
-    const q = pickerSearch.toLowerCase();
-    return doctors.filter(
-      (d) =>
-        d.name.toLowerCase().includes(q) ||
-        (d.specialty || '').toLowerCase().includes(q) ||
-        (d.clinic || '').toLowerCase().includes(q)
-    );
-  }, [doctors, pickerSearch]);
+  const allDoctorCities = useMemo(() => {
+      const seen = new Set<string>();
+      doctors.forEach((d) => { if (d.city) seen.add(d.city); });
+      return Array.from(seen).sort();
+    }, [doctors]);
+
+    const pickerDoctors = useMemo(() => {
+      const q = pickerSearch.toLowerCase();
+      return doctors.filter(
+        (d) =>
+          (!pickerCity || (d.city || '') === pickerCity) &&
+          (
+            d.name.toLowerCase().includes(q) ||
+            (d.specialty || '').toLowerCase().includes(q) ||
+            (d.clinic || '').toLowerCase().includes(q) ||
+            (d.city || '').toLowerCase().includes(q)
+          )
+      );
+    }, [doctors, pickerSearch, pickerCity]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -96,17 +106,41 @@ const CallsPage = () => {
           <DialogHeader>
             <DialogTitle>Select Doctor</DialogTitle>
           </DialogHeader>
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search doctors..."
-              value={pickerSearch}
-              onChange={(e) => setPickerSearch(e.target.value)}
-              className="pl-9"
-              autoFocus
-            />
-          </div>
-          <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+          <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search doctors..."
+                value={pickerSearch}
+                onChange={(e) => setPickerSearch(e.target.value)}
+                className="pl-9"
+                autoFocus
+              />
+            </div>
+            {allDoctorCities.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                  onClick={() => setPickerCity('')}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    !pickerCity ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                  }`}
+                >
+                  All Cities
+                </button>
+                {allDoctorCities.map((city) => (
+                  <button
+                    key={city}
+                    onClick={() => setPickerCity(pickerCity === city ? '' : city)}
+                    className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      pickerCity === city ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                    }`}
+                  >
+                    <MapPin className="w-3 h-3" />
+                    {city}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="space-y-2 max-h-[45vh] overflow-y-auto">
             {pickerDoctors.length === 0 && (
               <p className="text-center text-muted-foreground py-6 text-sm">No doctors found</p>
             )}
