@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Search, ChevronRight, Plus, Package, Trash2 } from 'lucide-react';
+import { Phone, Search, ChevronRight, Plus, Package, Trash2, MapPin } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useAppStore } from '@/store/useAppStore';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,8 @@ const CallsPage = () => {
   const [showDoctorPicker, setShowDoctorPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [cityFilter, setCityFilter] = useState('');
+    const [callSearch, setCallSearch] = useState('');
 
   const today = new Date().toISOString().split('T')[0];
   const todayCalls = calls.filter((c) => c.date === today);
@@ -36,6 +38,29 @@ const CallsPage = () => {
     () => [...calls].sort((a, b) => (b.date || '').localeCompare(a.date || '')),
     [calls]
   );
+
+    const callCities = useMemo(() => {
+      const seen = new Set<string>();
+      sortedCalls.forEach((c) => {
+        const city = doctors.find((d) => d.id === c.doctorId)?.city;
+        if (city) seen.add(city);
+      });
+      return Array.from(seen).sort();
+    }, [sortedCalls, doctors]);
+
+    const filteredCalls = useMemo(() => {
+      return sortedCalls.filter((c) => {
+        const doctor = doctors.find((d) => d.id === c.doctorId);
+        const matchCity = !cityFilter || (doctor?.city || '') === cityFilter;
+        const q = callSearch.toLowerCase();
+        const matchSearch = !q ||
+          (doctor?.name || '').toLowerCase().includes(q) ||
+          (doctor?.specialty || '').toLowerCase().includes(q) ||
+          (doctor?.city || '').toLowerCase().includes(q) ||
+          (c.date || '').includes(q);
+        return matchCity && matchSearch;
+      });
+    }, [sortedCalls, doctors, cityFilter, callSearch]);
 
   const pickerDoctors = useMemo(() => {
     const q = pickerSearch.toLowerCase();
@@ -148,8 +173,45 @@ const CallsPage = () => {
         </div>
       </div>
 
-      {/* Saved Calls List */}
-      {sortedCalls.length === 0 ? (
+      {/* Search + City Filter */}
+        <div className="px-4 pb-3 space-y-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by doctor, city, date…"
+              value={callSearch}
+              onChange={(e) => setCallSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          {callCities.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <button
+                onClick={() => setCityFilter('')}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  !cityFilter ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                }`}
+              >
+                All
+              </button>
+              {callCities.map((city) => (
+                <button
+                  key={city}
+                  onClick={() => setCityFilter(cityFilter === city ? '' : city)}
+                  className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    cityFilter === city ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                  }`}
+                >
+                  <MapPin className="w-3 h-3" />
+                  {city}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Saved Calls List */}
+        {filteredCalls.length === 0 && sortedCalls.length === 0 ? (
         <div className="px-4 py-16 text-center">
           <Phone className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground font-medium">No calls yet</p>
@@ -157,7 +219,7 @@ const CallsPage = () => {
         </div>
       ) : (
         <div className="px-4 pb-6 space-y-3">
-          {sortedCalls.map((call) => {
+          {filteredCalls.map((call) => {
             const doctor = doctors.find((d) => d.id === call.doctorId);
             const callProducts = (call.products || []).map((cp) => ({
               ...cp,
