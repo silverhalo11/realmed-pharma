@@ -5,15 +5,27 @@ interface PageHeaderProps {
   title: string;
   action?: React.ReactNode;
   backTo?: string;
+  back?: () => void;
 }
 
-const PageHeader = ({ title, action, backTo = '/' }: PageHeaderProps) => {
+const PageHeader = ({ title, action, backTo = '/', back }: PageHeaderProps) => {
   const navigate = useNavigate();
+  const handleBack = () => {
+    if (back) {
+      back();
+      return;
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate(backTo);
+  };
 
   return (
     <div className="sticky top-0 z-30 flex items-center gap-3 bg-background/80 backdrop-blur-md px-4 py-3 border-b">
       <button
-        onClick={() => navigate(backTo)}
+        onClick={handleBack}
         data-testid="button-back"
         className="p-1.5 rounded-lg hover:bg-secondary active:bg-secondary/80 transition-colors"
       >

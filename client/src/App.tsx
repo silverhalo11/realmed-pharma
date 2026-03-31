@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,8 +21,22 @@ import CallsPage from "./pages/CallsPage";
 import NewCallPage from "./pages/NewCallPage";
 import CallDetailPage from "./pages/CallDetailPage";
 import NotFound from "./pages/NotFound";
+import launchLogo from "@assets/realmed_bird_logo_white.png";
 
 const queryClient = new QueryClient();
+
+const LaunchScreen = () => (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white">
+    <div className="flex flex-col items-center gap-6">
+      <img
+        src={launchLogo}
+        alt="RealMed Pharma"
+        className="w-44 h-44 md:w-56 md:h-56 object-contain animate-[pulse_1.6s_ease-in-out_infinite]"
+      />
+      <div className="h-1.5 w-28 rounded-full bg-gradient-to-r from-cyan-500/20 via-cyan-600 to-cyan-500/20 animate-pulse" />
+    </div>
+  </div>
+);
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
@@ -45,11 +59,21 @@ const AppLayout = () => {
   const { pathname } = useLocation();
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
   const checkAuth = useAppStore((s) => s.checkAuth);
+  const [showLaunch, setShowLaunch] = useState(true);
   const showNav = isLoggedIn && pathname !== '/login' && pathname !== '/signup';
 
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowLaunch(false), 1600);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (showLaunch) {
+    return <LaunchScreen />;
+  }
 
   return (
     <>
