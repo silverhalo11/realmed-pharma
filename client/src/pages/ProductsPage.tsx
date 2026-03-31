@@ -74,6 +74,7 @@ const resolveImageUrl = (url?: string | null) => {
     setEditing(null);
     setForm(emptyForm);
     setImagePreview('');
+    setUploading(false);
     setOpen(true);
   };
 
@@ -88,6 +89,7 @@ const resolveImageUrl = (url?: string | null) => {
       catalogImage: p.catalogImage || '',
     });
     setImagePreview(resolveImageUrl(p.catalogImage));
+    setUploading(false);
     setOpen(true);
   };
 
@@ -124,6 +126,7 @@ const resolveImageUrl = (url?: string | null) => {
     setEditing(null);
     setForm(emptyForm);
     setImagePreview('');
+    setUploading(false);
   };
 
   const saveCat = () => {
@@ -237,7 +240,7 @@ const resolveImageUrl = (url?: string | null) => {
         </p>
       )}
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setForm(emptyForm); setImagePreview(''); } }}>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditing(null); setForm(emptyForm); setImagePreview(''); setUploading(false); } }}>
         <DialogContent className="max-w-[95vw] rounded-xl">
           <DialogHeader><DialogTitle>{editing ? 'Edit Product' : 'Add Product'}</DialogTitle></DialogHeader>
           <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
