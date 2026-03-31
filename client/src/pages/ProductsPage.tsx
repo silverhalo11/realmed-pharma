@@ -23,11 +23,13 @@ const resolveImageUrl = (url?: string | null) => {
 
   const compressImage = (file: File, maxDim = 800, quality = 0.70): Promise<string> =>
     new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Image took too long — try a smaller photo')), 10000);
+      const done = (fn: () => void) => { clearTimeout(timer); fn(); };
       const reader = new FileReader();
-      reader.onerror = reject;
+      reader.onerror = () => done(() => reject(new Error('Could not read image file')));
       reader.onload = (ev) => {
         const img = new Image();
-        img.onerror = reject;
+        img.onerror = () => done(() => reject(new Error('Could not decode image')));
         img.onload = () => {
           try {
             let { width, height } = img;
@@ -38,14 +40,12 @@ const resolveImageUrl = (url?: string | null) => {
             const canvas = document.createElement('canvas');
             canvas.width = width; canvas.height = height;
             const ctx = canvas.getContext('2d');
-            if (!ctx) { reject(new Error('Canvas context unavailable')); return; }
+            if (!ctx) { done(() => reject(new Error('Canvas unavailable'))); return; }
             ctx.drawImage(img, 0, 0, width, height);
             const dataUrl = canvas.toDataURL('image/jpeg', quality);
-            if (!dataUrl || dataUrl === 'data:,') { reject(new Error('Canvas toDataURL failed')); return; }
-            resolve(dataUrl);
-          } catch (err) {
-            reject(err);
-          }
+            if (!dataUrl || dataUrl === 'data:,') { done(() => reject(new Error('Compression failed'))); return; }
+            done(() => resolve(dataUrl));
+          } catch (err) { done(() => reject(err)); }
         };
         img.src = ev.target!.result as string;
       };
@@ -93,45 +93,18 @@ const resolveImageUrl = (url?: string | null) => {
     setOpen(true);
   };
 
-  const dataUrlToBlob = (dataUrl: string): Blob => {
-    const [header, b64] = dataUrl.split(',');
-    const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-    const bytes = atob(b64);
-    const arr = new Uint8Array(bytes.length);
-    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-    return new Blob([arr], { type: mime });
-  };
-
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 30000);
     try {
       const dataUrl = await compressImage(file);
-      const blob = dataUrlToBlob(dataUrl);
-      const fd = new FormData();
-      fd.append('image', blob, file.name.replace(/.[^.]+$/, '.jpg'));
-      const res = await fetch(`${API_BASE}/api/uploads/product-image`, {
-        method: 'POST',
-        body: fd,
-        credentials: 'include',
-        signal: ctrl.signal,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Upload failed' }));
-        throw new Error(err.message || 'Upload failed');
-      }
-      const { url } = await res.json();
-      setForm((f) => ({ ...f, catalogImage: url, catalogSlide: 0 }));
-      setImagePreview(url);
-      toast.success('Image uploaded');
+      setForm((f) => ({ ...f, catalogImage: dataUrl, catalogSlide: 0 }));
+      setImagePreview(dataUrl);
+      toast.success('Image ready — tap Save to apply');
     } catch (err: any) {
-      const msg = err.name === 'AbortError' ? 'Upload timed out — check your connection' : (err.message || 'Failed to upload image');
-      toast.error(msg);
+      toast.error(err.message || 'Failed to process image');
     } finally {
-      clearTimeout(timer);
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
