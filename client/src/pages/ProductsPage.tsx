@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 const emptyForm = { name: '', category: '', composition: '', description: '', catalogSlide: 0, catalogImage: '' };
 const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+const BASE_CATALOG_SLIDES = 90;
 
 const resolveImageUrl = (url?: string | null) => {
   if (!url) return '';
@@ -160,8 +161,10 @@ const resolveImageUrl = (url?: string | null) => {
 
   const openCatalog = (p: Product) => {
     if (p.catalogImage) {
-      const imageUrl = resolveImageUrl(p.catalogImage);
-      navigate(`/catalog?image=${encodeURIComponent(imageUrl)}&productName=${encodeURIComponent(p.name)}&from=/products`);
+      const uploadedProducts = products.filter((product) => !!product.catalogImage);
+      const uploadedIndex = uploadedProducts.findIndex((product) => product.id === p.id);
+      const slideNumber = uploadedIndex >= 0 ? BASE_CATALOG_SLIDES + uploadedIndex + 1 : 1;
+      navigate(`/catalog?slide=${slideNumber}&from=/products`);
     } else if (p.catalogSlide && p.catalogSlide > 0) {
       navigate(`/catalog?slide=${p.catalogSlide}&from=/products`);
     }
