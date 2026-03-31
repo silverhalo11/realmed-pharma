@@ -93,18 +93,45 @@ const resolveImageUrl = (url?: string | null) => {
     setOpen(true);
   };
 
+  const dataUrlToBlob = (dataUrl: string): Blob => {
+    const [header, b64] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  };
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000);
     try {
       const dataUrl = await compressImage(file);
-      setForm((f) => ({ ...f, catalogImage: dataUrl, catalogSlide: 0 }));
-      setImagePreview(dataUrl);
-      toast.success('Image ready — tap Save to apply');
+      const blob = dataUrlToBlob(dataUrl);
+      const fd = new FormData();
+      fd.append('image', blob, file.name.replace(/.[^.]+$/, '.jpg'));
+      const res = await fetch(`${API_BASE}/api/uploads/product-image`, {
+        method: 'POST',
+        body: fd,
+        credentials: 'include',
+        signal: ctrl.signal,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(err.message || 'Upload failed');
+      }
+      const { url } = await res.json();
+      setForm((f) => ({ ...f, catalogImage: url, catalogSlide: 0 }));
+      setImagePreview(url);
+      toast.success('Image uploaded');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to process image');
+      const msg = err.name === 'AbortError' ? 'Upload timed out — check your connection' : (err.message || 'Failed to upload image');
+      toast.error(msg);
     } finally {
+      clearTimeout(timer);
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
