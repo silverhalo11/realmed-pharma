@@ -29,15 +29,23 @@ const resolveImageUrl = (url?: string | null) => {
         const img = new Image();
         img.onerror = reject;
         img.onload = () => {
-          let { width, height } = img;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
-            else { width = Math.round((width * maxDim) / height); height = maxDim; }
+          try {
+            let { width, height } = img;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+              else { width = Math.round((width * maxDim) / height); height = maxDim; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { reject(new Error('Canvas context unavailable')); return; }
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            if (!dataUrl || dataUrl === 'data:,') { reject(new Error('Canvas toDataURL failed')); return; }
+            resolve(dataUrl);
+          } catch (err) {
+            reject(err);
           }
-          const canvas = document.createElement('canvas');
-          canvas.width = width; canvas.height = height;
-          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.src = ev.target!.result as string;
       };
@@ -255,7 +263,7 @@ const resolveImageUrl = (url?: string | null) => {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                className="hidden"
+                style={{ display: 'none' }}
                 onChange={handleImageSelect}
               />
               {imagePreview ? (
