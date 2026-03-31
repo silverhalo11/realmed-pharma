@@ -4,26 +4,25 @@ import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { DEFAULT_PRODUCTS } from "./seedProducts";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
-
-const uploadsDir = path.resolve(process.cwd(), "uploads", "products");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+import { v2 as cloudinary } from "cloudinary";
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname) || ".jpg";
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
     else cb(new Error("Only image files are allowed"));
   },
 });
+
+const uploadToCloudinary = (buffer: Buffer): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "realmed-pharma/products", resource_type: "image", format: "jpg", quality: "auto:good" },
+      (err, result) => { if (err || !result) reject(err || new Error("Cloudinary upload failed")); else resolve(result.secure_url); }
+    );
+    stream.end(buffer);
+  });
 
 declare module "express-session" {
   interface SessionData {
@@ -43,7 +42,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  app.use("/uploads/products", express.static(uploadsDir));
 
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -208,22 +206,15 @@ export async function registerRoutes(
     } catch (err: any) { console.error("DELETE /api/products error:", err.message); res.status(500).json({ message: err.message }); }
   });
 
-  app.post("/api/uploads/product-image", requireAuth, upload.single("image"), (req, res) => {
+  app.post("/api/uploads/product-image", requireAuth, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ message: "No image file uploaded" });
-      const url = `/uploads/products/${req.file.filename}`;
+      const url = await uploadToCloudinary(req.file.buffer);
       res.json({ url });
-    } catch (err: any) { res.status(500).json({ message: err.message }); }
-  });
-
-  app.delete("/api/uploads/product-image", requireAuth, (req, res) => {
-    try {
-      const { filename } = req.body;
-      if (!filename) return res.status(400).json({ message: "No filename provided" });
-      const filePath = path.join(uploadsDir, path.basename(filename));
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      res.json({ ok: true });
-    } catch (err: any) { res.status(500).json({ message: err.message }); }
+    } catch (err: any) {
+      console.error("Cloudinary upload error:", err.message);
+      res.status(500).json({ message: err.message || "Upload failed" });
+    }
   });
 
   app.get("/api/orders", requireAuth, async (req, res) => {
