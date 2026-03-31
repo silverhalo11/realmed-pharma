@@ -84,7 +84,7 @@ const Dashboard = () => {
             Product Catalog
           </h2>
           <button
-            onClick={() => navigate('/catalog')}
+            onClick={() => navigate('/catalog?from=/')}
             className="text-xs text-primary font-medium"
             data-testid="link-view-full-catalog"
           >
@@ -94,10 +94,6 @@ const Dashboard = () => {
         <CatalogSlideshow
           uploadedImages={uploadedCatalogImages}
           onSlideClick={(slide) => {
-            if (slide.image) {
-              navigate(`/catalog?image=${encodeURIComponent(slide.image)}&productName=${encodeURIComponent(slide.productName || '')}&from=/`);
-              return;
-            }
             navigate(`/catalog?slide=${slide.slide || 1}&from=/`);
           }}
         />
@@ -133,7 +129,6 @@ const catalogSlides = Array.from({ length: TOTAL_SLIDES }, (_, i) => {
 type CatalogSlideItem = {
   src: string;
   slide?: number;
-  image?: string;
   productName?: string;
 };
 
@@ -146,7 +141,11 @@ const CatalogSlideshow = ({
 }) => {
   const allSlides: CatalogSlideItem[] = [
     ...catalogSlides.map((src, index) => ({ src, slide: index + 1 })),
-    ...uploadedImages.map((img) => ({ src: img.src, image: img.src, productName: img.productName })),
+    ...uploadedImages.map((img, index) => ({
+      src: img.src,
+      slide: TOTAL_SLIDES + index + 1,
+      productName: img.productName,
+    })),
   ];
 
   const totalSlides = allSlides.length;
