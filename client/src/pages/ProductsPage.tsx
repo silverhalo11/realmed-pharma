@@ -93,14 +93,22 @@ const resolveImageUrl = (url?: string | null) => {
     setOpen(true);
   };
 
+  const dataUrlToBlob = (dataUrl: string): Blob => {
+    const [header, base64] = dataUrl.split(',');
+    const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bytes = atob(base64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  };
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
       const dataUrl = await compressImage(file);
-      const blobRes = await fetch(dataUrl);
-      const blob = await blobRes.blob();
+      const blob = dataUrlToBlob(dataUrl);
       const formData = new FormData();
       formData.append('image', blob, file.name.replace(/\.[^.]+$/, '.jpg'));
       const uploadRes = await fetch(`${API_BASE}/api/uploads/product-image`, {
