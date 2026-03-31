@@ -84,7 +84,7 @@ const Dashboard = () => {
             Product Catalog
           </h2>
           <button
-            onClick={() => navigate('/catalog')}
+            onClick={() => navigate('/catalog?from=/')}
             className="text-xs text-primary font-medium"
             data-testid="link-view-full-catalog"
           >

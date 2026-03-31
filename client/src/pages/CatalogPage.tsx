@@ -32,7 +32,7 @@ const CatalogPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { products } = useAppStore();
-  const returnTo = searchParams.get('from') || '/products';
+  const returnTo = searchParams.get('from');
 
   const uploadedSlides = products
     .filter((p) => !!p.catalogImage)
@@ -87,7 +87,13 @@ const CatalogPage = () => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') goNext();
       if (e.key === 'ArrowLeft') goPrev();
-      if (e.key === 'Escape') { exitFS(); setTimeout(() => navigate(returnTo), 50); }
+      if (e.key === 'Escape') {
+        exitFS();
+        setTimeout(() => {
+          if (returnTo) navigate(returnTo, { replace: true });
+          else navigate(-1);
+        }, 50);
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -97,7 +103,10 @@ const CatalogPage = () => {
     if (exiting) return;
     setExiting(true);
     exitFS();
-    setTimeout(() => navigate(returnTo), 50);
+    setTimeout(() => {
+      if (returnTo) navigate(returnTo, { replace: true });
+      else navigate(-1);
+    }, 50);
   };
 
   return (
