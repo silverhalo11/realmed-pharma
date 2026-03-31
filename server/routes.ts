@@ -6,6 +6,20 @@ import { DEFAULT_PRODUCTS } from "./seedProducts";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
 
+const hasCloudinaryConfig = Boolean(
+  process.env.CLOUDINARY_URL ||
+  (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+);
+
+if (hasCloudinaryConfig) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -208,6 +222,11 @@ export async function registerRoutes(
 
   app.post("/api/uploads/product-image", requireAuth, upload.single("image"), async (req, res) => {
     try {
+      if (!hasCloudinaryConfig) {
+        return res.status(503).json({
+          message: "Image upload is unavailable: Cloudinary is not configured on the server",
+        });
+      }
       if (!req.file) return res.status(400).json({ message: "No image file uploaded" });
       const url = await uploadToCloudinary(req.file.buffer);
       res.json({ url });
