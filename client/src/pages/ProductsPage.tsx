@@ -21,7 +21,7 @@ const resolveImageUrl = (url?: string | null) => {
 };
 
 
-  const compressImage = (file: File, maxDim = 1200, quality = 0.82): Promise<string> =>
+  const compressImage = (file: File, maxDim = 800, quality = 0.70): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = reject;
@@ -93,39 +93,17 @@ const resolveImageUrl = (url?: string | null) => {
     setOpen(true);
   };
 
-  const dataUrlToBlob = (dataUrl: string): Blob => {
-    const [header, base64] = dataUrl.split(',');
-    const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
-    const bytes = atob(base64);
-    const arr = new Uint8Array(bytes.length);
-    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-    return new Blob([arr], { type: mime });
-  };
-
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
       const dataUrl = await compressImage(file);
-      const blob = dataUrlToBlob(dataUrl);
-      const formData = new FormData();
-      formData.append('image', blob, file.name.replace(/\.[^.]+$/, '.jpg'));
-      const uploadRes = await fetch(`${API_BASE}/api/uploads/product-image`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json().catch(() => ({ message: 'Upload failed' }));
-        throw new Error(err.message || 'Upload failed');
-      }
-      const { url } = await uploadRes.json();
-      setForm((f) => ({ ...f, catalogImage: url, catalogSlide: 0 }));
-      setImagePreview(resolveImageUrl(url));
-      toast.success('Image uploaded successfully');
+      setForm((f) => ({ ...f, catalogImage: dataUrl, catalogSlide: 0 }));
+      setImagePreview(dataUrl);
+      toast.success('Image ready — tap Save to apply');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to upload image');
+      toast.error(err.message || 'Failed to process image');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
