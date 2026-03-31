@@ -99,11 +99,25 @@ const resolveImageUrl = (url?: string | null) => {
     setUploading(true);
     try {
       const dataUrl = await compressImage(file);
-      setForm((f) => ({ ...f, catalogImage: dataUrl, catalogSlide: 0 }));
-      setImagePreview(dataUrl);
-      toast.success('Image selected successfully');
-    } catch {
-      toast.error('Failed to process image');
+      const blobRes = await fetch(dataUrl);
+      const blob = await blobRes.blob();
+      const formData = new FormData();
+      formData.append('image', blob, file.name.replace(/\.[^.]+$/, '.jpg'));
+      const uploadRes = await fetch(`${API_BASE}/api/uploads/product-image`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(err.message || 'Upload failed');
+      }
+      const { url } = await uploadRes.json();
+      setForm((f) => ({ ...f, catalogImage: url, catalogSlide: 0 }));
+      setImagePreview(resolveImageUrl(url));
+      toast.success('Image uploaded successfully');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload image');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
