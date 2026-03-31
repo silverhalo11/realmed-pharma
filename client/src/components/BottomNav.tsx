@@ -11,13 +11,15 @@ const tabs = [
   { label: 'Calls', icon: Phone, path: '/calls' },
 ];
 
+const isTabActive = (tabPath: string, pathname: string) => {
+  if (tabPath === '/') return pathname === '/';
+  return pathname === tabPath || pathname.startsWith(`${tabPath}/`);
+};
+
 const BottomNav = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const activeIndex = tabs.findIndex((tab) => {
-    if (tab.path === '/') return pathname === '/';
-    return pathname === tab.path || pathname.startsWith(`${tab.path}/`);
-  });
+  const activeIndex = tabs.findIndex((tab) => isTabActive(tab.path, pathname));
   const activeTabIndex = activeIndex >= 0 ? activeIndex : 0;
   const indicatorPosition = `calc((100% / ${tabs.length}) * ${activeTabIndex} + (100% / ${tabs.length}) / 2)`;
 
