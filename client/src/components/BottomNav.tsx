@@ -1,64 +1,79 @@
-const activeIndex = tabs.findIndex((tab) => {
-  if (tab.path === '/') return pathname === '/';
-  return pathname === tab.path || pathname.startsWith(`${tab.path}/`);
-});
+import { useNavigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Stethoscope, Package, ShoppingCart, Bell, Phone } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const activeTabIndex = activeIndex >= 0 ? activeIndex : 0;
+const tabs = [
+  { label: 'Home', icon: LayoutDashboard, path: '/' },
+  { label: 'Doctors', icon: Stethoscope, path: '/doctors' },
+  { label: 'Products', icon: Package, path: '/products' },
+  { label: 'Orders', icon: ShoppingCart, path: '/orders' },
+  { label: 'Reminders', icon: Bell, path: '/reminders' },
+  { label: 'Calls', icon: Phone, path: '/calls' },
+];
 
-const indicatorPosition = `calc((100% / ${tabs.length}) * ${activeTabIndex} + (100% / ${tabs.length}) / 2)`;
+const BottomNav = () => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
-return (
-  <nav className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-2 safe-bottom" data-testid="nav-bottom">
-    <div className="relative h-[76px] max-w-lg mx-auto">
+  const activeIndex = tabs.findIndex((tab) => {
+    if (tab.path === '/') return pathname === '/';
+    return pathname === tab.path || pathname.startsWith(`${tab.path}/`);
+  });
 
-      {/* Background */}
-      <div className="absolute inset-x-0 bottom-0 h-[62px] rounded-2xl bg-card/95 border shadow-[0_10px_28px_-20px_hsl(var(--foreground)/0.55)] backdrop-blur supports-[backdrop-filter]:bg-card/90" />
+  const activeTabIndex = activeIndex >= 0 ? activeIndex : 0;
+  const tabWidthPct = 100 / tabs.length;
+  const bubbleLeft = `${tabWidthPct * activeTabIndex + tabWidthPct / 2}%`;
 
-      {/* Active Indicator */}
-      <div
-        className="pointer-events-none absolute -top-1.5 h-[64px] w-[64px] -translate-x-1/2 rounded-full border-4 border-background bg-card shadow-lg transition-all duration-300 ease-out"
-        style={{ left: indicatorPosition }}
-      >
-        <div className="absolute inset-[7px] rounded-full border-2 border-primary/45" />
-      </div>
+  const ActiveIcon = tabs[activeTabIndex].icon;
 
-      {/* Tabs */}
-      <div className="relative z-10 flex items-end justify-around h-full">
-        {tabs.map((tab) => {
-          const active = tabs[activeTabIndex]?.path === tab.path;
+  return (
+    <div
+      className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-3 safe-bottom"
+      data-testid="nav-bottom"
+    >
+      <div className="relative max-w-lg mx-auto" style={{ height: '86px' }}>
 
-          return (
-            <button
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
-              data-testid={`nav-${tab.label.toLowerCase()}`}
-              className={cn(
-                'group flex flex-col items-center justify-center gap-1 flex-1 h-full pb-3 transition-all duration-300',
-                active
-                  ? '-translate-y-4 text-primary'
-                  : 'text-muted-foreground/90 hover:text-foreground'
-              )}
-            >
-              <tab.icon
+        {/* Floating bubble — active icon lifts above the bar */}
+        <div
+          className="absolute top-0 z-20 -translate-x-1/2 transition-all duration-300 ease-out"
+          style={{ left: bubbleLeft }}
+        >
+          {/* Outer ring (white border matching background) */}
+          <div className="w-[60px] h-[60px] rounded-full bg-background flex items-center justify-center">
+            {/* Inner bubble */}
+            <div className="w-[52px] h-[52px] rounded-full bg-card border-[3px] border-primary shadow-[0_6px_20px_-4px_hsl(var(--primary)/0.55)] flex items-center justify-center">
+              <ActiveIcon className="w-[22px] h-[22px] text-primary" strokeWidth={2.2} />
+            </div>
+          </div>
+        </div>
+
+        {/* Pill nav bar */}
+        <nav className="absolute bottom-0 inset-x-0 h-[62px] rounded-[40px] bg-card border border-border/50 shadow-[0_8px_30px_-10px_hsl(var(--foreground)/0.18)] flex items-center overflow-hidden">
+          {tabs.map((tab, i) => {
+            const active = i === activeTabIndex;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.path}
+                onClick={() => navigate(tab.path)}
+                data-testid={`nav-${tab.label.toLowerCase()}`}
                 className={cn(
-                  'w-5 h-5 transition-transform duration-300',
-                  active && 'scale-110'
-                )}
-              />
-
-              <span
-                className={cn(
-                  'text-[10px] font-semibold leading-none transition-opacity duration-200',
-                  active ? 'opacity-100' : 'opacity-75'
+                  'flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all duration-200',
+                  active
+                    ? 'opacity-0 pointer-events-none'
+                    : 'text-muted-foreground hover:text-foreground active:scale-90'
                 )}
               >
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+                <Icon className="w-[18px] h-[18px]" strokeWidth={1.8} />
+                <span className="text-[8.5px] font-semibold tracking-tight">{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
 
+      </div>
     </div>
-  </nav>
-);
+  );
+};
+
+export default BottomNav;
