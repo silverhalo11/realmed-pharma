@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/realmed-pharma/"
+title = "RealMed Pharma"
+version = "1.0.0"
+id = "artifacts/realmed-pharma"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/realmed-pharma/" ]
+localPort = 18398
+
+[services.development]
+run = "pnpm --filter @workspace/realmed-pharma run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/realmed-pharma", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/realmed-pharma", "run", "serve" ]
+
+[services.env]
+PORT = "18398"
+BASE_PATH = "/realmed-pharma/"
