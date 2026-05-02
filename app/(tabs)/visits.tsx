@@ -40,7 +40,8 @@ export default function VisitsScreen() {
 
   // Form state
   const [selectedDoctor, setSelectedDoctor] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dateObj, setDateObj] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [timeDate, setTimeDate] = useState(new Date());
   const [timeSet, setTimeSet] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -77,19 +78,32 @@ export default function VisitsScreen() {
     setDoctorSearch('');
     setProductSearch('');
     setSelectedProducts([]);
+    setDateObj(new Date());
+    setShowDatePicker(false);
     setTimeDate(new Date());
     setTimeSet(false);
     setShowTimePicker(false);
-    setDate(new Date().toISOString().split('T')[0]);
+  }
+
+  function onDateChange(event: DateTimePickerEvent, selected?: Date) {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (event.type === 'set' && selected) setDateObj(selected);
   }
 
   function onTimeChange(event: DateTimePickerEvent, selected?: Date) {
-    // On Android the picker closes itself after selection
     if (Platform.OS === 'android') setShowTimePicker(false);
     if (event.type === 'set' && selected) {
       setTimeDate(selected);
       setTimeSet(true);
     }
+  }
+
+  function formatDate(d: Date) {
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function toYMD(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   async function handleAdd() {
@@ -99,7 +113,7 @@ export default function VisitsScreen() {
       doctorId: doctor.id,
       doctorName: doctor.name,
       doctorClinic: doctor.clinic,
-      date,
+      date: toYMD(dateObj),
       time: timeSet ? toHHMM(timeDate) : '',
       showProducts: selectedProducts,
     });
@@ -170,14 +184,53 @@ export default function VisitsScreen() {
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ maxHeight: '90%' }}>
 
               {/* Date */}
-              <Text style={[styles.fieldLabel, { color: colors.mutedForeground, fontFamily: 'Inter_500Medium' }]}>Date</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground, fontFamily: 'Inter_400Regular' }]}
-                value={date}
-                onChangeText={setDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.mutedForeground}
-              />
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground, fontFamily: 'Inter_500Medium' }]}>Visit Date</Text>
+              <TouchableOpacity
+                style={[styles.timePicker, { backgroundColor: colors.background, borderColor: colors.primary }]}
+                onPress={() => { setShowTimePicker(false); setShowDatePicker(true); }}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.timeEmoji}>📅</Text>
+                <Text style={[styles.timePickerText, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
+                  {formatDate(dateObj)}
+                </Text>
+                <Text style={[styles.fieldLabel, { color: colors.mutedForeground, margin: 0 }]}>Change</Text>
+              </TouchableOpacity>
+
+              {/* Native date picker */}
+              {showDatePicker && Platform.OS !== 'web' && (
+                <View style={[styles.iosPickerWrap, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <DateTimePicker
+                    value={dateObj}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                    style={Platform.OS === 'ios' ? styles.iosPicker : undefined}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity
+                      style={[styles.iosDoneBtn, { backgroundColor: colors.primary }]}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={[styles.iosDoneBtnText, { fontFamily: 'Inter_600SemiBold' }]}>Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* Web fallback for date */}
+              {showDatePicker && Platform.OS === 'web' && (
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground, fontFamily: 'Inter_400Regular', marginTop: 4 }]}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.mutedForeground}
+                  onChangeText={val => {
+                    const d = new Date(val);
+                    if (!isNaN(d.getTime())) { setDateObj(d); setShowDatePicker(false); }
+                  }}
+                />
+              )}
 
               {/* Time */}
               <Text style={[styles.fieldLabel, { color: colors.mutedForeground, fontFamily: 'Inter_500Medium', marginTop: 10 }]}>Visit Time</Text>
