@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { Dimensions, FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -12,16 +12,17 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getCatalogUrl } from '@/constants/seedData';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOTAL_SLIDES = 90;
 const MAX_ZOOM = 5;
 
 interface ZoomableSlideProps {
   uri: string;
+  width: number;
+  height: number;
   onZoomChange: (zoomed: boolean) => void;
 }
 
-function ZoomableSlide({ uri, onZoomChange }: ZoomableSlideProps) {
+function ZoomableSlide({ uri, width, height, onZoomChange }: ZoomableSlideProps) {
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -57,8 +58,8 @@ function ZoomableSlide({ uri, onZoomChange }: ZoomableSlideProps) {
     .averageTouches(true)
     .onUpdate(e => {
       if (savedScale.value > 1) {
-        const maxX = (SCREEN_WIDTH * (savedScale.value - 1)) / 2;
-        const maxY = (SCREEN_HEIGHT * (savedScale.value - 1)) / 2;
+        const maxX = (width * (savedScale.value - 1)) / 2;
+        const maxY = (height * (savedScale.value - 1)) / 2;
         translateX.value = Math.min(maxX, Math.max(-maxX, savedTX.value + e.translationX));
         translateY.value = Math.min(maxY, Math.max(-maxY, savedTY.value + e.translationY));
       }
@@ -91,10 +92,10 @@ function ZoomableSlide({ uri, onZoomChange }: ZoomableSlideProps) {
 
   return (
     <GestureDetector gesture={composed}>
-      <Animated.View style={[styles.slide, animStyle]}>
+      <Animated.View style={[{ width, flex: 1, alignItems: 'center', justifyContent: 'center' }, animStyle]}>
         <Image
           source={{ uri }}
-          style={styles.slideImage}
+          style={{ width, height: '100%' }}
           contentFit="contain"
           placeholder={{ color: '#1e3a5f' }}
           transition={200}
@@ -107,6 +108,7 @@ function ZoomableSlide({ uri, onZoomChange }: ZoomableSlideProps) {
 
 export default function CatalogScreen() {
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const { slide } = useLocalSearchParams<{ slide?: string }>();
   const initialSlide = slide ? Math.max(1, Math.min(parseInt(slide, 10), TOTAL_SLIDES)) : 1;
   const [current, setCurrent] = useState(initialSlide);
@@ -132,15 +134,17 @@ export default function CatalogScreen() {
         scrollEnabled={scrollEnabled}
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={initialSlide - 1}
-        getItemLayout={(_, index) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * index, index })}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         onMomentumScrollEnd={e => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          const idx = Math.round(e.nativeEvent.contentOffset.x / width);
           setCurrent(idx + 1);
         }}
         renderItem={({ item }) => (
-          <View style={styles.slideContainer}>
+          <View style={{ width, flex: 1 }}>
             <ZoomableSlide
               uri={getCatalogUrl(item)}
+              width={width}
+              height={height}
               onZoomChange={zoomed => setScrollEnabled(!zoomed)}
             />
           </View>
@@ -177,9 +181,6 @@ export default function CatalogScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
-  slideContainer: { width: SCREEN_WIDTH, flex: 1 },
-  slide: { width: SCREEN_WIDTH, flex: 1, alignItems: 'center', justifyContent: 'center' },
-  slideImage: { width: SCREEN_WIDTH, height: '100%' },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
