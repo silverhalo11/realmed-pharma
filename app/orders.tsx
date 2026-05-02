@@ -17,14 +17,16 @@ export default function OrdersScreen() {
     if (!order) return;
     const doctor = doctors.find(d => d.id === order.doctorId);
 
+    const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
     const lines: string[] = [];
     lines.push('*RealMed Pharma — Order Details*');
     lines.push('');
-    lines.push(`👨‍⚕️ *Doctor:* Dr. ${order.doctorName}`);
-    if (doctor?.medicalStore) lines.push(`🏪 *Medical Store:* ${doctor.medicalStore}`);
-    if (doctor?.address)      lines.push(`📍 *Delivery Address:* ${doctor.address}`);
-    if (doctor?.phone)        lines.push(`📞 *Phone:* ${doctor.phone}`);
-    lines.push(`📅 *Date:* ${new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+    lines.push(`*Doctor:* Dr. ${order.doctorName}`);
+    if (doctor?.medicalStore) lines.push(`*Medical Store:* ${doctor.medicalStore}`);
+    if (doctor?.address)      lines.push(`*Delivery Address:* ${doctor.address}`);
+    if (doctor?.phone)        lines.push(`*Phone:* ${doctor.phone}`);
+    lines.push(`*Date:* ${today}`);
     lines.push('');
     lines.push('*Order Items:*');
     order.items.forEach(i => lines.push(`  • ${i.productName}: ${i.quantity} ${i.unit}`));
