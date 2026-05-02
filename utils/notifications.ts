@@ -10,7 +10,6 @@ let Notifications: typeof import('expo-notifications') | null = null;
 const isExpoGo = Constants.appOwnership === 'expo';
 
 if (!isExpoGo && Platform.OS !== 'web') {
-  // Suppress any internal console.error from the module init
   const _err = console.error;
   console.error = () => {};
   try {
@@ -19,6 +18,40 @@ if (!isExpoGo && Platform.OS !== 'web') {
     Notifications = null;
   } finally {
     console.error = _err;
+  }
+}
+
+const CHANNEL_ID = 'realmed-visits';
+
+export function setupNotificationHandler(): void {
+  if (!Notifications) return;
+  try {
+    // Must set handler before anything else
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+
+    // Android 8+ requires a notification channel — without this notifications are silent
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+        name: 'Visit Reminders',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 300, 200, 300],
+        lightColor: '#0ea5e9',
+        sound: 'default',
+        enableLights: true,
+        enableVibrate: true,
+        showBadge: true,
+      });
+    }
+  } catch {
+    // ignore
   }
 }
 
@@ -54,11 +87,16 @@ export async function scheduleVisitNotification(
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: '🏥 Visit Reminder',
-        body: `You have a visit with Dr. ${doctorName}${doctorClinic ? ` at ${doctorClinic}` : ''}`,
-        sound: true,
+        body: `Visit with Dr. ${doctorName}${doctorClinic ? ` at ${doctorClinic}` : ''} is scheduled now.`,
+        sound: 'default',
         data: { doctorName },
+        // Android: link to the channel so it plays sound + vibrates
+        ...(Platform.OS === 'android' ? { channelId: CHANNEL_ID } : {}),
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: trigger,
+      },
     });
     return id;
   } catch {
@@ -70,23 +108,6 @@ export async function cancelVisitNotification(notificationId?: string): Promise<
   if (!Notifications || !notificationId) return;
   try {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
-  } catch {
-    // ignore
-  }
-}
-
-export function setupNotificationHandler(): void {
-  if (!Notifications) return;
-  try {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
-    });
   } catch {
     // ignore
   }
