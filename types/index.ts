@@ -30,6 +30,7 @@ export interface Product {
   composition: string;
   description: string;
   catalogSlide: number;
+  imageUri?: string;
   isSeeded: boolean;
 }
 
@@ -57,11 +58,11 @@ export interface Visit {
   doctorName: string;
   doctorClinic: string;
   date: string;
-  time: string;                // "HH:MM" 24-hour format
+  time: string;
   completed: boolean;
-  showProducts: string[];      // product IDs to demo during this visit
-  acceptedProducts: string[];  // product IDs doctor approved/liked
-  notificationId?: string;     // expo notification identifier for cancellation
+  showProducts: string[];
+  acceptedProducts: string[];
+  notificationId?: string;
   createdAt: string;
 }
 

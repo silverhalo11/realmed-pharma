@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Product } from '@/types';
@@ -36,7 +37,15 @@ export function ProductCard({ product, onPress }: ProductCardProps) {
       activeOpacity={0.75}
     >
       <View style={[styles.badge, { backgroundColor: catColor + '18' }]}>
-        <Text style={styles.emoji}>{catEmoji}</Text>
+        {product.imageUri ? (
+          <Image
+            source={{ uri: product.imageUri }}
+            style={styles.thumbnail}
+            contentFit="cover"
+          />
+        ) : (
+          <Text style={styles.emoji}>{catEmoji}</Text>
+        )}
       </View>
       <View style={styles.info}>
         <Text style={[styles.name, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]} numberOfLines={1}>
@@ -69,7 +78,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  badge: { width: 46, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  badge: { width: 46, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  thumbnail: { width: 46, height: 46, borderRadius: 12 },
   emoji: { fontSize: 22 },
   info: { flex: 1, gap: 2 },
   name: { fontSize: 15 },

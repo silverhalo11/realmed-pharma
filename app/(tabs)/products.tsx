@@ -4,17 +4,20 @@ import { FlatList, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, Vie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { ProductCard } from '@/components/ProductCard';
+import { ProductFormModal } from '@/components/ProductFormModal';
 import { SearchBar } from '@/components/SearchBar';
 import { CATEGORIES } from '@/constants/seedData';
 import { useData } from '@/context/DataContext';
 import { useColors } from '@/hooks/useColors';
+import { Product } from '@/types';
 
 export default function ProductsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { products } = useData();
+  const { products, addProduct } = useData();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
+  const [showForm, setShowForm] = useState(false);
 
   const filtered = useMemo(() =>
     products.filter(p => {
@@ -27,6 +30,11 @@ export default function ProductsScreen() {
   );
 
   const webTop = Platform.OS === 'web' ? 67 : 0;
+
+  async function handleAdd(data: Omit<Product, 'id' | 'userId' | 'isSeeded'>) {
+    await addProduct(data);
+    setShowForm(false);
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -66,6 +74,21 @@ export default function ProductsScreen() {
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + (Platform.OS === 'web' ? 84 : 100) }]}
         scrollEnabled={!!filtered.length || !!query}
       />
+
+      {/* FAB */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.primary, bottom: insets.bottom + (Platform.OS === 'web' ? 84 : 80) }]}
+        onPress={() => setShowForm(true)}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.fabIcon}>＋</Text>
+      </TouchableOpacity>
+
+      <ProductFormModal
+        visible={showForm}
+        onSave={handleAdd}
+        onClose={() => setShowForm(false)}
+      />
     </View>
   );
 }
@@ -82,4 +105,19 @@ const styles = StyleSheet.create({
   catalogEmoji: { fontSize: 18 },
   catalogText: { flex: 1, fontSize: 14 },
   catalogArrow: { fontSize: 22, lineHeight: 26 },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabIcon: { color: '#fff', fontSize: 28, lineHeight: 32, marginTop: -2 },
 });
