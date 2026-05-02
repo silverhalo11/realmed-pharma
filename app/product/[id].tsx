@@ -79,13 +79,18 @@ export default function ProductDetailScreen() {
               placeholder={{ color: catColor + '18' }}
               transition={300}
             />
-            {!product.imageUri && product.catalogSlide ? (
-              <View style={[styles.viewCatalog, { backgroundColor: catColor + '18' }]}>
+            {product.catalogSlide > 0 ? (
+              <TouchableOpacity
+                style={[styles.viewCatalog, { backgroundColor: catColor + '18' }]}
+                onPress={() => router.push({ pathname: '/catalog', params: { slide: product.catalogSlide } } as any)}
+                activeOpacity={0.75}
+              >
                 <Feather name="book-open" size={14} color={catColor} />
                 <Text style={[styles.viewCatalogText, { color: catColor, fontFamily: 'Inter_500Medium' }]}>
-                  View in Catalog (Slide {product.catalogSlide})
+                  View in Catalog — Slide {product.catalogSlide}
                 </Text>
-              </View>
+                <Feather name="chevron-right" size={14} color={catColor} />
+              </TouchableOpacity>
             ) : null}
             {product.imageUri ? (
               <View style={[styles.uploadedBadge, { backgroundColor: catColor + 'dd' }]}>
