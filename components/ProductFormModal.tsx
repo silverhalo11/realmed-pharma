@@ -40,6 +40,7 @@ export function ProductFormModal({ visible, product, onSave, onClose }: Props) {
   const [catalogSlide, setCatalogSlide] = useState('0');
   const [imageUri, setImageUri] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [initialCatalogSlide, setInitialCatalogSlide] = useState(0);
 
   useEffect(() => {
     if (visible) {
@@ -47,6 +48,7 @@ export function ProductFormModal({ visible, product, onSave, onClose }: Props) {
       setCategory(product?.category ?? PRODUCT_CATEGORIES[0]);
       setComposition(product?.composition ?? '');
       setDescription(product?.description ?? '');
+      setInitialCatalogSlide(product?.catalogSlide ?? 0);
       setCatalogSlide(product?.catalogSlide ? String(product.catalogSlide) : '0');
       setImageUri(product?.imageUri);
     }
@@ -94,7 +96,9 @@ export function ProductFormModal({ visible, product, onSave, onClose }: Props) {
     if (!name.trim()) { Alert.alert('Required', 'Product name is required.'); return; }
     if (!composition.trim()) { Alert.alert('Required', 'Composition is required.'); return; }
     const slide = parseInt(catalogSlide, 10);
-    const validSlide = isNaN(slide) || slide < 1 || slide > TOTAL_SLIDES ? 0 : slide;
+    const validSlide = isNaN(slide) || slide < 1 || slide > TOTAL_SLIDES
+      ? initialCatalogSlide
+      : slide;
     setSaving(true);
     onSave({ name: name.trim(), category, composition: composition.trim(), description: description.trim(), catalogSlide: validSlide, imageUri });
     setSaving(false);
